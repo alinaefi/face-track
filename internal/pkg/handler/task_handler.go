@@ -28,12 +28,9 @@ func respond(c *gin.Context, resp *task_service.Response) {
 }
 
 func (h *Handler) getTask(c *gin.Context) {
+	var req *task_model.TaskIdReq
 	var err error
 	var task *task_model.Task
-
-	req := &struct {
-		TaskId int `json:"id"`
-	}{}
 
 	err = c.BindJSON(&req)
 	if err != nil {
@@ -65,11 +62,8 @@ func (h *Handler) createTask(c *gin.Context) {
 }
 
 func (h *Handler) deleteTask(c *gin.Context) {
+	var req *task_model.TaskIdReq
 	var err error
-
-	req := &struct {
-		TaskId int `json:"id"`
-	}{}
 
 	err = c.BindJSON(&req)
 	if err != nil {
@@ -89,11 +83,8 @@ func (h *Handler) deleteTask(c *gin.Context) {
 }
 
 func (h *Handler) addImageToTask(c *gin.Context) {
+	var req *task_model.TaskIdReq
 	var err error
-
-	req := &struct {
-		TaskId int `json:"id"`
-	}{}
 
 	err = c.BindJSON(&req)
 	if err != nil {
@@ -130,11 +121,8 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 }
 
 func (h *Handler) processTask(c *gin.Context) {
+	var req *task_model.TaskIdReq
 	var err error
-
-	req := &struct {
-		TaskId int `json:"id"`
-	}{}
 
 	err = c.BindJSON(&req)
 	if err != nil {

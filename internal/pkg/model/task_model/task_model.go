@@ -2,6 +2,11 @@ package task_model
 
 import "mime/multipart"
 
+// request types
+type TaskIdReq struct {
+	TaskId int `json:"id"`
+}
+
 // models for working with API and database
 type Task struct {
 	Id           int        `db:"id" json:"id"`
