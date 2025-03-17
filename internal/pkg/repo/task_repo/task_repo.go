@@ -3,6 +3,7 @@ package task_repo
 import (
 	"database/sql"
 	"encoding/json"
+	"face-track/internal/pkg/clients/face_cloud_client"
 	"face-track/internal/pkg/model/task_model"
 	"face-track/tools"
 	"fmt"
@@ -283,7 +284,7 @@ func (r *TaskRepo) GetFaceDetectionData(image *task_model.Image, token string) (
 	defer file.Close()
 
 	// готовим и отправляем запрос
-	data, err := tools.FaceCloudDetectRequest(file, token)
+	data, err := face_cloud_client.DetectFaces(file, token)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +314,7 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 	}
 
 	// готовим и отправляем запрос
-	data, err := tools.FaceCloudLoginRequest(reqBodyBytes)
+	data, err := face_cloud_client.Login(reqBodyBytes)
 	if err != nil {
 		return token, err
 	}
