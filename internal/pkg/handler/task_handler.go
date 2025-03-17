@@ -15,11 +15,11 @@ func (h *Handler) setTaskGroup(api *gin.RouterGroup) {
 	authMiddleware := middleware.NewAuthMiddleware()
 	taskApiGroup.Use(authMiddleware.BasicAuthMiddleware())
 	{
-		taskApiGroup.GET("/tasks/:id", h.HandleGetTask)
-		taskApiGroup.POST("/tasks", h.HandleCreateTask)
-		taskApiGroup.DELETE("/tasks/:id", h.HandleDeleteTask)
-		taskApiGroup.PATCH("/tasks/:id", h.HandleAddImageToTask)
-		taskApiGroup.PATCH("/tasks/:id/process", h.HandleProcessTask)
+		taskApiGroup.GET("/tasks/:id", h.getTask)
+		taskApiGroup.POST("/tasks", h.createTask)
+		taskApiGroup.DELETE("/tasks/:id", h.deleteTask)
+		taskApiGroup.PATCH("/tasks/:id", h.addImageToTask)
+		taskApiGroup.PATCH("/tasks/:id/process", h.processTask)
 	}
 }
 
@@ -27,7 +27,7 @@ func respond(c *gin.Context, resp *service.Response) {
 	c.JSON(resp.Status, resp.Data)
 }
 
-func (h *Handler) HandleGetTask(c *gin.Context) {
+func (h *Handler) getTask(c *gin.Context) {
 
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
@@ -44,14 +44,14 @@ func (h *Handler) HandleGetTask(c *gin.Context) {
 	respond(c, resp)
 }
 
-func (h *Handler) HandleCreateTask(c *gin.Context) {
+func (h *Handler) createTask(c *gin.Context) {
 
 	resp := h.service.CreateTask()
 
 	respond(c, resp)
 }
 
-func (h *Handler) HandleDeleteTask(c *gin.Context) {
+func (h *Handler) deleteTask(c *gin.Context) {
 
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
@@ -68,7 +68,7 @@ func (h *Handler) HandleDeleteTask(c *gin.Context) {
 	respond(c, resp)
 }
 
-func (h *Handler) HandleAddImageToTask(c *gin.Context) {
+func (h *Handler) addImageToTask(c *gin.Context) {
 
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
@@ -106,7 +106,7 @@ func (h *Handler) HandleAddImageToTask(c *gin.Context) {
 	respond(c, resp)
 }
 
-func (h *Handler) HandleProcessTask(c *gin.Context) {
+func (h *Handler) processTask(c *gin.Context) {
 
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
