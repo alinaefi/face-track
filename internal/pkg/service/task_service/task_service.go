@@ -6,12 +6,11 @@ import (
 	"face-track/internal/pkg/model"
 	"face-track/internal/pkg/repo"
 	"fmt"
+	"image"
 	"log"
-	"net/http"
 	"os"
 	"sync"
 
-	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -107,62 +106,56 @@ func (s *TaskService) deleteTaskImagesFromDisk(taskId int) (err error) {
 	return os.RemoveAll(path)
 }
 
-// AddImageToTask добавляет изображение в бд и на диск
-func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *model.FileData) (resp *Response) {
-	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to add image to task"}}
+// AddImageToTask validates and adds a new image to task: to disk and database.
+func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *model.FileData) (err error) {
 
-	task, err := s.getFullTaskData(taskId)
+	if err = s.validateTaskImage(taskId, imageName, fileData); err != nil {
+		return err
+	}
+
+	// decode file to image type
+	var image image.Image
+	image, err = s.repo.Task.DecodeFile(fileData)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			resp.Status = http.StatusNotFound
-			resp.Data = gin.H{"error": fmt.Sprintf("task with id %d not found", taskId)}
-			return resp
-		}
-		return resp
+		return err
 	}
 
-	// проверяем статус задания
-	if task.Status != "new" {
-		resp.Status = http.StatusBadRequest
-		resp.Data = gin.H{"error": "failed to add image to task: task processing in progress"}
-		return resp
-	}
-
-	// проверяем уникальность имени
-	for _, image := range task.Images {
-		if image.ImageName == imageName {
-			resp.Status = http.StatusBadRequest
-			resp.Data = gin.H{"error": "failed to add image to task: image with specified name already exists"}
-			return resp
-		}
-	}
-
-	// валидируем расширение
-	if fileData.FileHeader.Header.Get("Content-Type") != "image/jpeg" {
-		resp.Status = http.StatusBadRequest
-		resp.Data = gin.H{"error": "unsupported file extension"}
-		return resp
-	}
-
-	// декодируем файл в изображение
-	image, err := s.repo.Task.DecodeFile(fileData)
-	if err != nil {
-		return resp
-	}
-
-	// сохраняем файл на диске
+	// save image on disk
 	imageRow, err := s.repo.Task.SaveImageDisk(taskId, image, imageName)
 	if err != nil {
-		return resp
+		return err
 	}
 
-	if err = s.repo.Task.CreateImage(imageRow); err != nil {
-		return resp
+	return s.repo.Task.CreateImage(imageRow)
+}
+
+// validateImage validates the image and related task data; returns error.
+func (s *TaskService) validateTaskImage(taskId int, imageName string, fileData *model.FileData) (err error) {
+	var task *model.Task
+
+	// validate file extension
+	if fileData.FileHeader.Header.Get("Content-Type") != "image/jpeg" {
+		return errors.New("unsupported file extension")
 	}
 
-	resp.Status = http.StatusOK
-	resp.Data = gin.H{"message": "image was successfully added to task"}
-	return resp
+	task, err = s.getFullTaskData(taskId)
+	if err != nil {
+		return err
+	}
+
+	// check task status
+	if task.Status != "new" {
+		return errors.New("failed to add image to task: task processing is in progress")
+	}
+
+	// TO DO allow same names for images
+	// validate image file name
+	for _, image := range task.Images {
+		if image.ImageName == imageName {
+			return errors.New("failed to add image to task: image with specified name already exists")
+		}
+	}
+	return err
 }
 
 // UpdateTaskStatus обновляет статус задания на заданный

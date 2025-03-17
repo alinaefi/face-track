@@ -90,23 +90,23 @@ func (h *Handler) deleteTask(c *gin.Context) {
 }
 
 func (h *Handler) addImageToTask(c *gin.Context) {
+	var err error
 
-	taskIdStr := c.Param("id")
-	taskId, err := strconv.Atoi(taskIdStr)
+	req := &struct {
+		TaskId int `json:"id"`
+	}{}
+
+	err = c.BindJSON(&req)
 	if err != nil {
-		respond(c, &task_service.Response{
-			Status: http.StatusBadRequest,
-			Data:   gin.H{"error": "invalid task id format"},
-		})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	imageName := c.PostForm("imageName")
 	if len(imageName) == 0 {
-		respond(c, &task_service.Response{
-			Status: http.StatusBadRequest,
-			Data:   gin.H{"error": "image name cannot be empty"},
-		})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "image name cannot be empty"})
 		return
 	}
 
@@ -115,16 +115,19 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 	defer fileData.File.Close()
 
 	if err != nil {
-		respond(c, &task_service.Response{
-			Status: http.StatusBadRequest,
-			Data:   gin.H{"error": "failed to get uploaded image"},
-		})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to get uploaded image"})
 		return
 	}
 
-	resp := h.service.AddImageToTask(taskId, imageName, fileData)
+	err = h.service.AddImageToTask(req.TaskId, imageName, fileData)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	respond(c, resp)
+	c.JSON(http.StatusOK, gin.H{"data": "image was successfully added to task"})
 }
 
 func (h *Handler) processTask(c *gin.Context) {
