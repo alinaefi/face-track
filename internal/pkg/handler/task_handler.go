@@ -4,6 +4,7 @@ import (
 	"face-track/internal/pkg/middleware"
 	"face-track/internal/pkg/model"
 	"face-track/internal/pkg/service/task_service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -28,20 +29,28 @@ func respond(c *gin.Context, resp *task_service.Response) {
 }
 
 func (h *Handler) getTask(c *gin.Context) {
+	var err error
+	var task *model.Task
 
-	taskIdStr := c.Param("id")
-	taskId, err := strconv.Atoi(taskIdStr)
+	req := &struct {
+		TaskId int `json:"id"`
+	}{}
+
+	err = c.BindJSON(&req)
 	if err != nil {
-		respond(c, &task_service.Response{
-			Status: http.StatusBadRequest,
-			Data:   gin.H{"error": "invalid task id format"},
-		})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	resp := h.service.GetTaskById(taskId)
+	task, err = h.service.GetTaskById(req.TaskId)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	respond(c, resp)
+	c.JSON(http.StatusOK, gin.H{"data": task})
 }
 
 func (h *Handler) createTask(c *gin.Context) {

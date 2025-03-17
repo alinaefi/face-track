@@ -33,37 +33,22 @@ type Response struct {
 	Data   interface{}
 }
 
-// GetTaskById возвращает данные о задании, изображениях и лицах, связанных с ним по идентификатору задания
-func (s *TaskService) GetTaskById(taskId int) (resp *Response) {
-	resp = &Response{Status: http.StatusInternalServerError}
-
-	task, err := s.getFullTaskData(taskId)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			resp.Status = http.StatusNotFound
-			resp.Data = gin.H{"error": fmt.Sprintf("task with id %d not found", taskId)}
-			return resp
-		}
-		resp.Data = gin.H{"error": "failed to get task"}
-		return resp
-	}
-
-	resp.Status = http.StatusOK
-	resp.Data = task
-	return resp
+// GetTaskById returns task data, images, and faces associated with it by task ID.
+func (s *TaskService) GetTaskById(taskId int) (task *model.Task, err error) {
+	return s.getFullTaskData(taskId)
 }
 
-// GetTaskById возвращает данные о задании в виде объекта
+// GetTaskById returns task data as an object.
 func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) {
 
 	task, err = s.repo.Task.GetTaskById(taskId)
 	if err != nil {
-		return nil, err
+		return task, err
 	}
 
 	task.Images, err = s.repo.Task.GetTaskImages(taskId)
 	if err != nil {
-		return nil, err
+		return task, err
 	}
 
 	if len(task.Images) > 0 {
@@ -74,7 +59,7 @@ func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) 
 
 		faces, err := s.repo.Task.GetFacesByImageIds(imageIds)
 		if err != nil {
-			return nil, err
+			return task, err
 		}
 
 		for _, image := range task.Images {
@@ -82,7 +67,7 @@ func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) 
 		}
 	}
 
-	return task, nil
+	return task, err
 }
 
 // CreateTask создает новое задание
