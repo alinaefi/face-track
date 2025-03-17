@@ -1,8 +1,8 @@
-package model
+package task_model
 
 import "mime/multipart"
 
-// модели для работы с бд и api
+// models for working with API and database
 type Task struct {
 	Id           int        `db:"id" json:"id"`
 	Status       string     `db:"task_status" json:"taskStatus"`
@@ -48,7 +48,7 @@ type FileData struct {
 	FileHeader *multipart.FileHeader
 }
 
-// модели для работы с face cloud
+// models for working with face cloud
 type FaceCloudLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

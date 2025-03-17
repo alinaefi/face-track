@@ -2,7 +2,7 @@ package handler
 
 import (
 	"face-track/internal/pkg/middleware"
-	"face-track/internal/pkg/model"
+	"face-track/internal/pkg/model/task_model"
 	"face-track/internal/pkg/service/task_service"
 	"log"
 	"net/http"
@@ -29,7 +29,7 @@ func respond(c *gin.Context, resp *task_service.Response) {
 
 func (h *Handler) getTask(c *gin.Context) {
 	var err error
-	var task *model.Task
+	var task *task_model.Task
 
 	req := &struct {
 		TaskId int `json:"id"`
@@ -109,7 +109,7 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 		return
 	}
 
-	fileData := &model.FileData{}
+	fileData := &task_model.FileData{}
 	fileData.File, fileData.FileHeader, err = c.Request.FormFile("image")
 	defer fileData.File.Close()
 

@@ -2,7 +2,7 @@ package task_service
 
 import (
 	"errors"
-	"face-track/internal/pkg/model"
+	"face-track/internal/pkg/model/task_model"
 	"face-track/internal/pkg/repo"
 	"fmt"
 	"image"
@@ -33,12 +33,12 @@ type Response struct {
 }
 
 // GetTaskById returns task data, images, and faces associated with it by task ID.
-func (s *TaskService) GetTaskById(taskId int) (task *model.Task, err error) {
+func (s *TaskService) GetTaskById(taskId int) (task *task_model.Task, err error) {
 	return s.getFullTaskData(taskId)
 }
 
 // GetTaskById returns task data as an object.
-func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) {
+func (s *TaskService) getFullTaskData(taskId int) (task *task_model.Task, err error) {
 
 	task, err = s.repo.Task.GetTaskById(taskId)
 	if err != nil {
@@ -76,7 +76,7 @@ func (s *TaskService) CreateTask() (taskId int, err error) {
 
 // DeleteTask deletes all task data from db and disk; returns error.
 func (s *TaskService) DeleteTask(taskId int) (err error) {
-	var task *model.Task
+	var task *task_model.Task
 
 	task, err = s.repo.Task.GetTaskById(taskId)
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *TaskService) deleteTaskImagesFromDisk(taskId int) (err error) {
 }
 
 // AddImageToTask validates and adds a new image to task: to disk and database.
-func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *model.FileData) (err error) {
+func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *task_model.FileData) (err error) {
 
 	if err = s.validateTaskImage(taskId, imageName, fileData); err != nil {
 		return err
@@ -129,8 +129,8 @@ func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *mod
 }
 
 // validateImage validates the image and related task data; returns error.
-func (s *TaskService) validateTaskImage(taskId int, imageName string, fileData *model.FileData) (err error) {
-	var task *model.Task
+func (s *TaskService) validateTaskImage(taskId int, imageName string, fileData *task_model.FileData) (err error) {
+	var task *task_model.Task
 
 	// validate file extension
 	if fileData.FileHeader.Header.Get("Content-Type") != "image/jpeg" {
@@ -179,8 +179,8 @@ func (s *TaskService) ProcessTask(taskId int) {
 	g.SetLimit(10)
 
 	var Mu sync.RWMutex
-	var facesToSave []*model.Face
-	var imagesToSetDone []*model.Image
+	var facesToSave []*task_model.Face
+	var imagesToSetDone []*task_model.Image
 
 	if len(task.Images) > 0 {
 
@@ -210,7 +210,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 
 				// process recognised faces data
 				for _, faceData := range imageData.Data {
-					newFace := &model.Face{
+					newFace := &task_model.Face{
 						ImageId: currImage.Id,
 						Gender:  faceData.Demographics.Gender,
 						Age:     int(faceData.Demographics.Age.Mean),
@@ -256,7 +256,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 }
 
 // concludeTask calculates task statistics and saves them to the database.
-func (s *TaskService) concludeTask(task *model.Task) {
+func (s *TaskService) concludeTask(task *task_model.Task) {
 
 	var totalFaces, maleFaces, femaleFaces, totalMaleAge, totalFemaleAge int
 
