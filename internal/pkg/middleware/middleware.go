@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"face-track/utils"
 	"net/http"
 	"os"
+
+	"face-track/tools"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +20,7 @@ type AuthMiddleware struct {
 }
 
 func NewAuthMiddleware() *AuthMiddleware {
-	utils.CheckEnvs(apiAuthUsernameEnvName, apiAuthPasswordEnvName)
+	tools.CheckEnvs(apiAuthUsernameEnvName, apiAuthPasswordEnvName)
 
 	return &AuthMiddleware{
 		username: os.Getenv(apiAuthUsernameEnvName),

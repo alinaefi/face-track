@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"face-track/internal/pkg/model/task_model"
-	"face-track/utils"
+	"face-track/tools"
 	"fmt"
 	"image"
 	"log"
@@ -191,7 +191,7 @@ func (r *TaskRepo) SaveImageDisk(taskId int, image image.Image, imageName string
 
 	path := r.getImagePath(imageRow)
 
-	if err := utils.SaveImg(image, path); err != nil {
+	if err := tools.SaveImg(image, path); err != nil {
 		return nil, err
 	}
 
@@ -203,7 +203,7 @@ func (r *TaskRepo) getImagePath(imageRow *task_model.Image) (path string) {
 
 	subFolderID := imageRow.TaskId % foldersAmount
 	folderToSave := fmt.Sprintf("/face track/images/%d/%d", subFolderID, imageRow.TaskId)
-	utils.CreateFolderIfNotExist(folderToSave)
+	tools.CreateFolderIfNotExist(folderToSave)
 
 	return fmt.Sprintf("%s/%s.jpeg", folderToSave, imageRow.ImageName)
 }
@@ -283,7 +283,7 @@ func (r *TaskRepo) GetFaceDetectionData(image *task_model.Image, token string) (
 	defer file.Close()
 
 	// готовим и отправляем запрос
-	data, err := utils.FaceCloudDetectRequest(file, token)
+	data, err := tools.FaceCloudDetectRequest(file, token)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (r *TaskRepo) GetFaceDetectionData(image *task_model.Image, token string) (
 func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 
 	// готовим параметры запроса
-	utils.CheckEnvs(faceCloudApiUrlEnvName, faceCloudUserEnvName, faceCloudPasswordEnvName)
+	tools.CheckEnvs(faceCloudApiUrlEnvName, faceCloudUserEnvName, faceCloudPasswordEnvName)
 	reqBody := task_model.FaceCloudLoginRequest{
 		Email:    os.Getenv(faceCloudUserEnvName),
 		Password: os.Getenv(faceCloudPasswordEnvName),
@@ -313,7 +313,7 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 	}
 
 	// готовим и отправляем запрос
-	data, err := utils.FaceCloudLoginRequest(reqBodyBytes)
+	data, err := tools.FaceCloudLoginRequest(reqBodyBytes)
 	if err != nil {
 		return token, err
 	}

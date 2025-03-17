@@ -2,9 +2,10 @@ package handler
 
 import (
 	"face-track/internal/pkg/service"
-	"face-track/utils"
 	"net/http"
 	"os"
+
+	"face-track/tools"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,7 +25,7 @@ func NewHandler(service *service.Service) *Handler {
 }
 
 func NewServer(s *service.Service) *http.Server {
-	utils.CheckEnvs(serverAddrName)
+	tools.CheckEnvs(serverAddrName)
 
 	serverAddress := os.Getenv(serverAddrName)
 

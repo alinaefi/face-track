@@ -1,10 +1,11 @@
 package database
 
 import (
-	"face-track/utils"
 	"fmt"
 	"os"
 	"time"
+
+	"face-track/tools"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -17,7 +18,7 @@ const (
 
 func GetDatabase(dbName, user, password string) (db *sqlx.DB, err error) {
 
-	utils.CheckEnvs(pgHostEnvName, pgPortEnvName)
+	tools.CheckEnvs(pgHostEnvName, pgPortEnvName)
 
 	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable",
 		os.Getenv(pgHostEnvName),

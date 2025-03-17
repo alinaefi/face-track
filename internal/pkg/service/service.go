@@ -5,7 +5,7 @@ import (
 	"face-track/internal/pkg/model/task_model"
 	"face-track/internal/pkg/repo"
 	"face-track/internal/pkg/service/task_service"
-	"face-track/utils"
+	"face-track/tools"
 	"log"
 	"os"
 )
@@ -21,7 +21,7 @@ type Service struct {
 }
 
 func NewServiceWithRepo() (srvs *Service) {
-	utils.CheckEnvs(pgDbEnvName, pgDbUserName, pgPassEnvName)
+	tools.CheckEnvs(pgDbEnvName, pgDbUserName, pgPassEnvName)
 
 	db, err := database.GetDatabase(os.Getenv(pgDbEnvName), os.Getenv(pgDbUserName), os.Getenv(pgPassEnvName))
 	if err != nil {
