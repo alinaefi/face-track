@@ -1,4 +1,4 @@
-package repository
+package task_repo
 
 import (
 	"database/sql"
@@ -20,19 +20,19 @@ const (
 	faceCloudPasswordEnvName = "FACE_CLOUD__API_PASS"
 )
 
-type FaceTrackRepo struct {
+type TaskRepo struct {
 	db *sqlx.DB
 }
 
-func NewFaceTrackRepo(db *sqlx.DB) (repo *FaceTrackRepo) {
-	return &FaceTrackRepo{
+func New(db *sqlx.DB) (repo *TaskRepo) {
+	return &TaskRepo{
 		db: db,
 	}
 }
 
 // GetTaskById делает запрос к бд и возвращает данные о задании по идентификатору задания
 // или ошибку
-func (r *FaceTrackRepo) GetTaskById(taskId int) (taskRow *model.Task, err error) {
+func (r *TaskRepo) GetTaskById(taskId int) (taskRow *model.Task, err error) {
 
 	query := `SELECT 
 				id, 
@@ -64,7 +64,7 @@ func (r *FaceTrackRepo) GetTaskById(taskId int) (taskRow *model.Task, err error)
 
 // GetTaskImages делает запрос к бд и возвращает данные об изображениях задания по идентификатору задания
 // или ошибку
-func (r *FaceTrackRepo) GetTaskImages(taskId int) (images []*model.Image, err error) {
+func (r *TaskRepo) GetTaskImages(taskId int) (images []*model.Image, err error) {
 
 	query := `SELECT 
 				id, 
@@ -83,7 +83,7 @@ func (r *FaceTrackRepo) GetTaskImages(taskId int) (images []*model.Image, err er
 
 // GetFacesByImageIds делает запрос к бд и возвращает данные о лицах на изображениях задания по идентификаторам изображений
 // или ошибку
-func (r *FaceTrackRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]*model.Face, err error) {
+func (r *TaskRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]*model.Face, err error) {
 
 	taskFaces = make(map[int][]*model.Face)
 	query := `SELECT 
@@ -136,7 +136,7 @@ func (r *FaceTrackRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]
 
 // CreateTask осуществляет вставку нового задания в бд и возвращает идентификатор задания
 // или ошибку
-func (r *FaceTrackRepo) CreateTask() (taskId int, err error) {
+func (r *TaskRepo) CreateTask() (taskId int, err error) {
 
 	query := `INSERT INTO task 
 				(
@@ -160,7 +160,7 @@ func (r *FaceTrackRepo) CreateTask() (taskId int, err error) {
 
 // DeleteTask удаляет из бд задание и все связанные с ним данные об изображениях и лицах
 // возвращает ошибку, если удаление не удалось
-func (r *FaceTrackRepo) DeleteTask(taskId int) (err error) {
+func (r *TaskRepo) DeleteTask(taskId int) (err error) {
 
 	query := `DELETE FROM task WHERE id=($1)`
 
@@ -182,7 +182,7 @@ func (r *FaceTrackRepo) DeleteTask(taskId int) (err error) {
 }
 
 // SaveImageDisk сохраняет изображение в файловой системе и возвращает его или ошибку
-func (r *FaceTrackRepo) SaveImageDisk(taskId int, image image.Image, imageName string) (imageRow *model.Image, err error) {
+func (r *TaskRepo) SaveImageDisk(taskId int, image image.Image, imageName string) (imageRow *model.Image, err error) {
 
 	imageRow = &model.Image{
 		TaskId:    taskId,
@@ -199,7 +199,7 @@ func (r *FaceTrackRepo) SaveImageDisk(taskId int, image image.Image, imageName s
 }
 
 // getImagePath создает папки для изображений задания и возвращает путь к изображению на диске
-func (r *FaceTrackRepo) getImagePath(imageRow *model.Image) (path string) {
+func (r *TaskRepo) getImagePath(imageRow *model.Image) (path string) {
 
 	subFolderID := imageRow.TaskId % foldersAmount
 	folderToSave := fmt.Sprintf("/face track/images/%d/%d", subFolderID, imageRow.TaskId)
@@ -209,7 +209,7 @@ func (r *FaceTrackRepo) getImagePath(imageRow *model.Image) (path string) {
 }
 
 // CreateImage сохраняет данные об изображении в бд, возвращает ошибку в случае неудачного запроса
-func (r *FaceTrackRepo) CreateImage(image *model.Image) (err error) {
+func (r *TaskRepo) CreateImage(image *model.Image) (err error) {
 
 	query := `INSERT INTO task_image 
 				(
@@ -237,7 +237,7 @@ func (r *FaceTrackRepo) CreateImage(image *model.Image) (err error) {
 
 // DecodeFile декодирует объект типа файл в объект типа Image
 // возвращает объект типа Image или ошибку
-func (r *FaceTrackRepo) DecodeFile(fileData *model.FileData) (img image.Image, err error) {
+func (r *TaskRepo) DecodeFile(fileData *model.FileData) (img image.Image, err error) {
 
 	img, _, err = image.Decode(fileData.File)
 	if err != nil {
@@ -248,7 +248,7 @@ func (r *FaceTrackRepo) DecodeFile(fileData *model.FileData) (img image.Image, e
 }
 
 // UpdateTaskStatus обновляет статус задания
-func (r *FaceTrackRepo) UpdateTaskStatus(taskId int, status string) (err error) {
+func (r *TaskRepo) UpdateTaskStatus(taskId int, status string) (err error) {
 
 	query := `UPDATE task 
 				SET task_status=$1 
@@ -272,7 +272,7 @@ func (r *FaceTrackRepo) UpdateTaskStatus(taskId int, status string) (err error) 
 }
 
 // GetFaceDetectionData отправляет запрос к API Face Cloud и возвращает ответ с API или ошибку
-func (r *FaceTrackRepo) GetFaceDetectionData(image *model.Image, token string) (imageData *model.FaceCloudDetectResponse, err error) {
+func (r *TaskRepo) GetFaceDetectionData(image *model.Image, token string) (imageData *model.FaceCloudDetectResponse, err error) {
 
 	// готовим изображение
 	imagePath := r.getImagePath(image)
@@ -298,7 +298,7 @@ func (r *FaceTrackRepo) GetFaceDetectionData(image *model.Image, token string) (
 
 // GetFaceCloudToken отправляет запрос к API Face Cloud на получение токена авторизации
 // возвращает токен или ошибку
-func (r *FaceTrackRepo) GetFaceCloudToken() (token string, err error) {
+func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 
 	// готовим параметры запроса
 	utils.CheckEnvs(faceCloudApiUrlEnvName, faceCloudUserEnvName, faceCloudPasswordEnvName)
@@ -329,7 +329,7 @@ func (r *FaceTrackRepo) GetFaceCloudToken() (token string, err error) {
 }
 
 // SaveProcessedData сохраняет в бд данные об обработанных изображениях и лицах
-func (r *FaceTrackRepo) SaveProcessedData(processedFaces []*model.Face, processedImages []*model.Image) {
+func (r *TaskRepo) SaveProcessedData(processedFaces []*model.Face, processedImages []*model.Image) {
 
 	if len(processedFaces) > 0 {
 		query := `INSERT INTO face 
@@ -372,7 +372,7 @@ func (r *FaceTrackRepo) SaveProcessedData(processedFaces []*model.Face, processe
 
 // UpdateTaskStatistics обновляет в бд данные статистики задания
 // возвращает ошибку в случае неудачного запроса
-func (r *FaceTrackRepo) UpdateTaskStatistics(task *model.Task) (err error) {
+func (r *TaskRepo) UpdateTaskStatistics(task *model.Task) (err error) {
 	query := `
 		UPDATE task 
 		SET task_status = :task_status, 
