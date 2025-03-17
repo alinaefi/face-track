@@ -55,9 +55,14 @@ func (h *Handler) getTask(c *gin.Context) {
 
 func (h *Handler) createTask(c *gin.Context) {
 
-	resp := h.service.CreateTask()
+	taskId, err := h.service.CreateTask()
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	respond(c, resp)
+	c.JSON(http.StatusOK, gin.H{"data": taskId})
 }
 
 func (h *Handler) deleteTask(c *gin.Context) {

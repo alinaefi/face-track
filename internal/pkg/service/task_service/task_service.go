@@ -70,22 +70,9 @@ func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) 
 	return task, err
 }
 
-// CreateTask создает новое задание
-func (s *TaskService) CreateTask() (resp *Response) {
-	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to create a task"}}
-
-	taskId, err := s.repo.Task.CreateTask()
-	if err != nil {
-		return resp
-	}
-
-	if taskId == 0 {
-		return resp
-	}
-
-	resp.Status = http.StatusOK
-	resp.Data = gin.H{"taskId": taskId}
-	return resp
+// CreateTask creates new task and returns its ID.
+func (s *TaskService) CreateTask() (taskId int, err error) {
+	return s.repo.Task.CreateTask()
 }
 
 // DeleteTask удаляет все данные о задании с диска и из бд

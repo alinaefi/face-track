@@ -37,7 +37,7 @@ func NewServiceWithRepo() (srvs *Service) {
 
 type Task interface {
 	GetTaskById(taskId int) (task *model.Task, err error)
-	CreateTask() (resp *task_service.Response)
+	CreateTask() (taskId int, err error)
 	DeleteTask(taskId int) (resp *task_service.Response)
 	AddImageToTask(taskId int, imageName string, fileData *model.FileData) (resp *task_service.Response)
 	UpdateTaskStatus(taskId int, status string) (err error)
