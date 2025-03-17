@@ -28,7 +28,7 @@ func respond(c *gin.Context, resp *task_service.Response) {
 }
 
 func (h *Handler) getTask(c *gin.Context) {
-	var req *task_model.TaskIdReq
+	var req *task_model.TaskIdRequest
 	var err error
 	var task *task_model.Task
 
@@ -62,7 +62,7 @@ func (h *Handler) createTask(c *gin.Context) {
 }
 
 func (h *Handler) deleteTask(c *gin.Context) {
-	var req *task_model.TaskIdReq
+	var req *task_model.TaskIdRequest
 	var err error
 
 	err = c.BindJSON(&req)
@@ -83,7 +83,7 @@ func (h *Handler) deleteTask(c *gin.Context) {
 }
 
 func (h *Handler) addImageToTask(c *gin.Context) {
-	var req *task_model.TaskIdReq
+	var req *task_model.TaskIdRequest
 	var err error
 
 	err = c.BindJSON(&req)
@@ -121,7 +121,7 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 }
 
 func (h *Handler) processTask(c *gin.Context) {
-	var req *task_model.TaskIdReq
+	var req *task_model.TaskIdRequest
 	var err error
 
 	err = c.BindJSON(&req)
