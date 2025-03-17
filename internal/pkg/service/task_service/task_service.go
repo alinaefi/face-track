@@ -1,7 +1,6 @@
 package task_service
 
 import (
-	"database/sql"
 	"errors"
 	"face-track/internal/pkg/model"
 	"face-track/internal/pkg/repo"
@@ -158,28 +157,18 @@ func (s *TaskService) validateTaskImage(taskId int, imageName string, fileData *
 	return err
 }
 
-// UpdateTaskStatus обновляет статус задания на заданный
+// UpdateTaskStatus updates the task status to the specified value.
 func (s *TaskService) UpdateTaskStatus(taskId int, status string) (err error) {
-	errorMsg := fmt.Errorf("failed update task status")
-
-	if err = s.repo.Task.UpdateTaskStatus(taskId, status); err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("task with id %d not found", taskId)
-		}
-		return errorMsg
-	}
-
-	return nil
+	return s.repo.Task.UpdateTaskStatus(taskId, status)
 }
 
-// ProcessTask запускает параллельную обработку изображений задания
+// ProcessTask processes tasks' images concurrently.
 func (s *TaskService) ProcessTask(taskId int) {
 
-	// запрашиваем все данные о задании, его изображениях и лицах
 	task, err := s.getFullTaskData(taskId)
 	if err != nil {
 		log.Println(err)
-		_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
+		s.repo.Task.UpdateTaskStatus(taskId, "error")
 		return
 	}
 	if task.Status == "completed" {
@@ -195,7 +184,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 
 	if len(task.Images) > 0 {
 
-		// получаем токен для запросов к внешнему API
+		// get token for external API authentication
 		token, err := s.repo.Task.GetFaceCloudToken()
 		if err != nil {
 			log.Println(err)
@@ -204,7 +193,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 		}
 
 		for _, img := range task.Images {
-			// не обрабатываем изображения повторно
+			// skip processed images
 			if img.DoneFlag {
 				continue
 			}
@@ -212,14 +201,14 @@ func (s *TaskService) ProcessTask(taskId int) {
 			currImage := img
 			g.Go(func() error {
 
-				// отправляет запрос к face cloud
+				// send request to face cloud
 				imageData, err := s.repo.Task.GetFaceDetectionData(currImage, token)
 				if err != nil {
 					log.Println(err)
 					return err
 				}
 
-				// готовим данные о найденных лицах
+				// process recognised faces data
 				for _, faceData := range imageData.Data {
 					newFace := &model.Face{
 						ImageId: currImage.Id,
@@ -246,7 +235,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 	}
 	err = g.Wait()
 
-	// сохраняем успешно обработанные данные в бд даже в случае ошибки
+	// save processed images to db
 	s.repo.Task.SaveProcessedData(facesToSave, imagesToSetDone)
 
 	if err != nil {
@@ -255,14 +244,18 @@ func (s *TaskService) ProcessTask(taskId int) {
 		return
 	}
 
-	// запрашиваем обновленные данные о задании
-	task, _ = s.getFullTaskData(taskId)
+	// request updated task data
+	task, err = s.getFullTaskData(taskId)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	// подсчитываем статистику задания и вызываем сохранение финальных данных
+	// analize statistics data and save it to db
 	s.concludeTask(task)
 }
 
-// concludeTask подсчитывает статистические данные задания и сохраняет в бд
+// concludeTask calculates task statistics and saves them to the database.
 func (s *TaskService) concludeTask(task *model.Task) {
 
 	var totalFaces, maleFaces, femaleFaces, totalMaleAge, totalFemaleAge int

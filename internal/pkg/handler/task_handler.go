@@ -6,7 +6,6 @@ import (
 	"face-track/internal/pkg/service/task_service"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -131,31 +130,27 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 }
 
 func (h *Handler) processTask(c *gin.Context) {
+	var err error
 
-	taskIdStr := c.Param("id")
-	taskId, err := strconv.Atoi(taskIdStr)
+	req := &struct {
+		TaskId int `json:"id"`
+	}{}
+
+	err = c.BindJSON(&req)
 	if err != nil {
-		respond(c, &task_service.Response{
-			Status: http.StatusBadRequest,
-			Data:   gin.H{"error": "invalid task id format"},
-		})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err = h.service.UpdateTaskStatus(taskId, "in_progress"); err != nil {
-		respond(c, &task_service.Response{
-			Status: http.StatusInternalServerError,
-			Data:   gin.H{"error": err.Error()},
-		})
+	err = h.service.UpdateTaskStatus(req.TaskId, "in_progress")
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	respond(c, &task_service.Response{
-		Status: http.StatusOK,
-		Data:   gin.H{"message": "task is being processed"},
-	})
+	c.JSON(http.StatusOK, gin.H{"data": "task is being processed"})
 
-	go func() {
-		h.service.ProcessTask(taskId)
-	}()
+	h.service.ProcessTask(req.TaskId)
 }
