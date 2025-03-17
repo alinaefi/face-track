@@ -56,12 +56,12 @@ func (s *TaskService) GetTaskById(taskId int) (resp *Response) {
 // GetTaskById возвращает данные о задании в виде объекта
 func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) {
 
-	task, err = s.repository.GetTaskById(taskId)
+	task, err = s.repo.Task.GetTaskById(taskId)
 	if err != nil {
 		return nil, err
 	}
 
-	task.Images, err = s.repository.GetTaskImages(taskId)
+	task.Images, err = s.repo.Task.GetTaskImages(taskId)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) 
 			imageIds = append(imageIds, img.Id)
 		}
 
-		faces, err := s.repository.GetFacesByImageIds(imageIds)
+		faces, err := s.repo.Task.GetFacesByImageIds(imageIds)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +89,7 @@ func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) 
 func (s *TaskService) CreateTask() (resp *Response) {
 	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to create a task"}}
 
-	taskId, err := s.repository.CreateTask()
+	taskId, err := s.repo.Task.CreateTask()
 	if err != nil {
 		return resp
 	}
@@ -107,7 +107,7 @@ func (s *TaskService) CreateTask() (resp *Response) {
 func (s *TaskService) DeleteTask(taskId int) (resp *Response) {
 	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to delete the task"}}
 
-	task, err := s.repository.GetTaskById(taskId)
+	task, err := s.repo.Task.GetTaskById(taskId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			resp.Status = http.StatusNotFound
@@ -123,7 +123,7 @@ func (s *TaskService) DeleteTask(taskId int) (resp *Response) {
 		return resp
 	}
 
-	if err = s.repository.DeleteTask(taskId); err != nil {
+	if err = s.repo.Task.DeleteTask(taskId); err != nil {
 		return resp
 	}
 
@@ -187,18 +187,18 @@ func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *mod
 	}
 
 	// декодируем файл в изображение
-	image, err := s.repository.DecodeFile(fileData)
+	image, err := s.repo.Task.DecodeFile(fileData)
 	if err != nil {
 		return resp
 	}
 
 	// сохраняем файл на диске
-	imageRow, err := s.repository.SaveImageDisk(taskId, image, imageName)
+	imageRow, err := s.repo.Task.SaveImageDisk(taskId, image, imageName)
 	if err != nil {
 		return resp
 	}
 
-	if err = s.repository.CreateImage(imageRow); err != nil {
+	if err = s.repo.Task.CreateImage(imageRow); err != nil {
 		return resp
 	}
 
@@ -211,7 +211,7 @@ func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *mod
 func (s *TaskService) UpdateTaskStatus(taskId int, status string) (err error) {
 	errorMsg := fmt.Errorf("failed update task status")
 
-	if err = s.repository.UpdateTaskStatus(taskId, status); err != nil {
+	if err = s.repo.Task.UpdateTaskStatus(taskId, status); err != nil {
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("task with id %d not found", taskId)
 		}
@@ -228,7 +228,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 	task, err := s.getFullTaskData(taskId)
 	if err != nil {
 		log.Println(err)
-		_ = s.repository.UpdateTaskStatus(taskId, "error")
+		_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
 		return
 	}
 	if task.Status == "completed" {
@@ -245,10 +245,10 @@ func (s *TaskService) ProcessTask(taskId int) {
 	if len(task.Images) > 0 {
 
 		// получаем токен для запросов к внешнему API
-		token, err := s.repository.GetFaceCloudToken()
+		token, err := s.repo.Task.GetFaceCloudToken()
 		if err != nil {
 			log.Println(err)
-			_ = s.repository.UpdateTaskStatus(taskId, "error")
+			_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
 			return
 		}
 
@@ -262,7 +262,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 			g.Go(func() error {
 
 				// отправляет запрос к face cloud
-				imageData, err := s.repository.GetFaceDetectionData(currImage, token)
+				imageData, err := s.repo.Task.GetFaceDetectionData(currImage, token)
 				if err != nil {
 					log.Println(err)
 					return err
@@ -296,11 +296,11 @@ func (s *TaskService) ProcessTask(taskId int) {
 	err = g.Wait()
 
 	// сохраняем успешно обработанные данные в бд даже в случае ошибки
-	s.repository.SaveProcessedData(facesToSave, imagesToSetDone)
+	s.repo.Task.SaveProcessedData(facesToSave, imagesToSetDone)
 
 	if err != nil {
 		log.Println(err)
-		_ = s.repository.UpdateTaskStatus(taskId, "error")
+		_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
 		return
 	}
 
@@ -345,9 +345,9 @@ func (s *TaskService) concludeTask(task *model.Task) {
 	task.AgeFemaleAvg = avgFemaleAge
 	task.Status = "completed"
 
-	err := s.repository.UpdateTaskStatistics(task)
+	err := s.repo.Task.UpdateTaskStatistics(task)
 	if err != nil {
-		_ = s.repository.UpdateTaskStatus(task.Id, "error")
+		_ = s.repo.Task.UpdateTaskStatus(task.Id, "error")
 		return
 	}
 }

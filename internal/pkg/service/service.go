@@ -3,6 +3,7 @@ package service
 import (
 	"face-track/internal/pkg/database"
 	"face-track/internal/pkg/repo"
+	"face-track/internal/pkg/service/task_service"
 	"face-track/utils"
 	"log"
 	"os"
