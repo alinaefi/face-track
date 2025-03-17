@@ -19,7 +19,7 @@ COPY --from=build /app/internal/database/migrations /app/internal/database/migra
 RUN apk add --no-cache curl && \
     curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.1/migrate.linux-amd64.tar.gz | tar xz -C /usr/local/bin
 
-COPY entrypoint.sh /app/
+COPY scripts/entrypoint.sh /app/
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 4221
