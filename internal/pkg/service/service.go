@@ -2,7 +2,7 @@ package service
 
 import (
 	"face-track/internal/pkg/database"
-	"face-track/internal/pkg/repository"
+	"face-track/internal/pkg/repo"
 	"face-track/utils"
 	"log"
 	"os"
@@ -15,10 +15,10 @@ const (
 )
 
 type Service struct {
-	repository *repository.FaceTrackRepo
+	Task
 }
 
-func NewService() (srvs *Service) {
+func NewServiceWithRepo() (srvs *Service) {
 	utils.CheckEnvs(pgDbEnvName, pgDbUserName, pgPassEnvName)
 
 	db, err := database.GetDatabase(os.Getenv(pgDbEnvName), os.Getenv(pgDbUserName), os.Getenv(pgPassEnvName))
@@ -26,9 +26,11 @@ func NewService() (srvs *Service) {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
-	repo := repository.NewFaceTrackRepo(db)
+	repo := repo.NewRepo(db)
 
 	return &Service{
-		repository: repo,
+		Task: task_service.New(repo),
 	}
 }
+
+type Task interface{}

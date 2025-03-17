@@ -1,8 +1,9 @@
-package service
+package task_service
 
 import (
 	"database/sql"
 	"face-track/internal/pkg/model"
+	"face-track/internal/pkg/repo"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,13 +18,23 @@ const (
 	foldersAmount = 30000
 )
 
+type TaskService struct {
+	repo *repo.Repo
+}
+
+func New(repo *repo.Repo) *TaskService {
+	return &TaskService{
+		repo: repo,
+	}
+}
+
 type Response struct {
 	Status int
 	Data   interface{}
 }
 
 // GetTaskById возвращает данные о задании, изображениях и лицах, связанных с ним по идентификатору задания
-func (s *Service) GetTaskById(taskId int) (resp *Response) {
+func (s *TaskService) GetTaskById(taskId int) (resp *Response) {
 	resp = &Response{Status: http.StatusInternalServerError}
 
 	task, err := s.getFullTaskData(taskId)
@@ -43,7 +54,7 @@ func (s *Service) GetTaskById(taskId int) (resp *Response) {
 }
 
 // GetTaskById возвращает данные о задании в виде объекта
-func (s *Service) getFullTaskData(taskId int) (task *model.Task, err error) {
+func (s *TaskService) getFullTaskData(taskId int) (task *model.Task, err error) {
 
 	task, err = s.repository.GetTaskById(taskId)
 	if err != nil {
@@ -75,7 +86,7 @@ func (s *Service) getFullTaskData(taskId int) (task *model.Task, err error) {
 }
 
 // CreateTask создает новое задание
-func (s *Service) CreateTask() (resp *Response) {
+func (s *TaskService) CreateTask() (resp *Response) {
 	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to create a task"}}
 
 	taskId, err := s.repository.CreateTask()
@@ -93,7 +104,7 @@ func (s *Service) CreateTask() (resp *Response) {
 }
 
 // DeleteTask удаляет все данные о задании с диска и из бд
-func (s *Service) DeleteTask(taskId int) (resp *Response) {
+func (s *TaskService) DeleteTask(taskId int) (resp *Response) {
 	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to delete the task"}}
 
 	task, err := s.repository.GetTaskById(taskId)
@@ -126,7 +137,7 @@ func (s *Service) DeleteTask(taskId int) (resp *Response) {
 }
 
 // deleteTaskImagesFromDisk удаляет папку с изображениями задания с диска
-func (s *Service) deleteTaskImagesFromDisk(taskId int) (err error) {
+func (s *TaskService) deleteTaskImagesFromDisk(taskId int) (err error) {
 
 	subFolderID := taskId % foldersAmount
 	path := fmt.Sprintf("/face track/images/%d/%d", subFolderID, taskId)
@@ -139,7 +150,7 @@ func (s *Service) deleteTaskImagesFromDisk(taskId int) (err error) {
 }
 
 // AddImageToTask добавляет изображение в бд и на диск
-func (s *Service) AddImageToTask(taskId int, imageName string, fileData *model.FileData) (resp *Response) {
+func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *model.FileData) (resp *Response) {
 	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to add image to task"}}
 
 	task, err := s.getFullTaskData(taskId)
@@ -197,7 +208,7 @@ func (s *Service) AddImageToTask(taskId int, imageName string, fileData *model.F
 }
 
 // UpdateTaskStatus обновляет статус задания на заданный
-func (s *Service) UpdateTaskStatus(taskId int, status string) (err error) {
+func (s *TaskService) UpdateTaskStatus(taskId int, status string) (err error) {
 	errorMsg := fmt.Errorf("failed update task status")
 
 	if err = s.repository.UpdateTaskStatus(taskId, status); err != nil {
@@ -211,7 +222,7 @@ func (s *Service) UpdateTaskStatus(taskId int, status string) (err error) {
 }
 
 // ProcessTask запускает параллельную обработку изображений задания
-func (s *Service) ProcessTask(taskId int) {
+func (s *TaskService) ProcessTask(taskId int) {
 
 	// запрашиваем все данные о задании, его изображениях и лицах
 	task, err := s.getFullTaskData(taskId)
@@ -301,7 +312,7 @@ func (s *Service) ProcessTask(taskId int) {
 }
 
 // concludeTask подсчитывает статистические данные задания и сохраняет в бд
-func (s *Service) concludeTask(task *model.Task) {
+func (s *TaskService) concludeTask(task *model.Task) {
 
 	var totalFaces, maleFaces, femaleFaces, totalMaleAge, totalFemaleAge int
 
