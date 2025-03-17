@@ -3,7 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
-	"face-track/internal/model"
+	"face-track/internal/pkg/model"
 	"face-track/utils"
 	"fmt"
 	"image"

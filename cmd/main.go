@@ -1,27 +1,36 @@
 package main
 
 import (
-	"face-track/internal"
-	"face-track/internal/service"
+	"context"
+	"face-track/internal/pkg/handler"
+	"face-track/internal/pkg/service"
 	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
+	s := service.NewService()
 
-	action := "run-server"
-
-	processAction(action)
+	runServer(s)
 }
 
-func processAction(arg string) {
-	log.Println("Processing action:", arg)
+func runServer(s *service.Service) {
 
-	service := service.NewService()
+	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	switch arg {
-	case "run-server":
-		internal.RunServer(service)
-	default:
-		panic("invalid action")
-	}
+	server := handler.NewServer(s)
+	defer server.Close()
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("gin error: %s\n", err)
+		}
+	}()
+
+	<-signalCtx.Done()
+
+	log.Println("Server exiting")
 }

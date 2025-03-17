@@ -2,7 +2,7 @@ package service
 
 import (
 	"database/sql"
-	"face-track/internal/model"
+	"face-track/internal/pkg/model"
 	"fmt"
 	"log"
 	"net/http"

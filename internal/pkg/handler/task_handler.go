@@ -1,13 +1,27 @@
 package handler
 
 import (
-	"face-track/internal/model"
-	"face-track/internal/service"
+	"face-track/internal/pkg/middleware"
+	"face-track/internal/pkg/model"
+	"face-track/internal/pkg/service"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
+func (h *Handler) setTaskGroup(api *gin.RouterGroup) {
+	taskApiGroup := api.Group("tasks")
+	authMiddleware := middleware.NewAuthMiddleware()
+	taskApiGroup.Use(authMiddleware.BasicAuthMiddleware())
+	{
+		taskApiGroup.GET("/tasks/:id", h.HandleGetTask)
+		taskApiGroup.POST("/tasks", h.HandleCreateTask)
+		taskApiGroup.DELETE("/tasks/:id", h.HandleDeleteTask)
+		taskApiGroup.PATCH("/tasks/:id", h.HandleAddImageToTask)
+		taskApiGroup.PATCH("/tasks/:id/process", h.HandleProcessTask)
+	}
+}
 
 func respond(c *gin.Context, resp *service.Response) {
 	c.JSON(resp.Status, resp.Data)

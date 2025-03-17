@@ -1,8 +1,8 @@
 package service
 
 import (
-	"face-track/internal/database"
-	"face-track/internal/repository"
+	"face-track/internal/pkg/database"
+	"face-track/internal/pkg/repository"
 	"face-track/utils"
 	"log"
 	"os"
