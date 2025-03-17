@@ -2,6 +2,7 @@ package service
 
 import (
 	"face-track/internal/pkg/database"
+	"face-track/internal/pkg/model"
 	"face-track/internal/pkg/repo"
 	"face-track/internal/pkg/service/task_service"
 	"face-track/utils"
@@ -34,4 +35,11 @@ func NewServiceWithRepo() (srvs *Service) {
 	}
 }
 
-type Task interface{}
+type Task interface {
+	GetTaskById(taskId int) (resp *task_service.Response)
+	CreateTask() (resp *task_service.Response)
+	DeleteTask(taskId int) (resp *task_service.Response)
+	AddImageToTask(taskId int, imageName string, fileData *model.FileData) (resp *task_service.Response)
+	UpdateTaskStatus(taskId int, status string) (err error)
+	ProcessTask(taskId int)
+}
