@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	s := service.NewService()
+	s := service.NewServiceWithRepo()
 
 	runServer(s)
 }
