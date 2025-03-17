@@ -66,20 +66,27 @@ func (h *Handler) createTask(c *gin.Context) {
 }
 
 func (h *Handler) deleteTask(c *gin.Context) {
+	var err error
 
-	taskIdStr := c.Param("id")
-	taskId, err := strconv.Atoi(taskIdStr)
+	req := &struct {
+		TaskId int `json:"id"`
+	}{}
+
+	err = c.BindJSON(&req)
 	if err != nil {
-		respond(c, &task_service.Response{
-			Status: http.StatusBadRequest,
-			Data:   gin.H{"error": "invalid task id format"},
-		})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	resp := h.service.DeleteTask(taskId)
+	err = h.service.DeleteTask(req.TaskId)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	respond(c, resp)
+	c.JSON(http.StatusOK, gin.H{"data": "task was successfully deleted"})
 }
 
 func (h *Handler) addImageToTask(c *gin.Context) {

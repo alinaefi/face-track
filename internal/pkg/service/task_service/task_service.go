@@ -2,6 +2,7 @@ package task_service
 
 import (
 	"database/sql"
+	"errors"
 	"face-track/internal/pkg/model"
 	"face-track/internal/pkg/repo"
 	"fmt"
@@ -75,50 +76,35 @@ func (s *TaskService) CreateTask() (taskId int, err error) {
 	return s.repo.Task.CreateTask()
 }
 
-// DeleteTask удаляет все данные о задании с диска и из бд
-func (s *TaskService) DeleteTask(taskId int) (resp *Response) {
-	resp = &Response{Status: http.StatusInternalServerError, Data: gin.H{"error": "failed to delete the task"}}
+// DeleteTask deletes all task data from db and disk; returns error.
+func (s *TaskService) DeleteTask(taskId int) (err error) {
+	var task *model.Task
 
-	task, err := s.repo.Task.GetTaskById(taskId)
+	task, err = s.repo.Task.GetTaskById(taskId)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			resp.Status = http.StatusNotFound
-			resp.Data = gin.H{"error": fmt.Sprintf("task with id %d not found", taskId)}
-			return resp
-		}
-		return resp
+		return err
 	}
 
 	if task.Status == "in_progress" {
-		resp.Status = http.StatusBadRequest
-		resp.Data = gin.H{"error": "unable to delete task: processing is in progress"}
-		return resp
+		return errors.New("unable to delete task: processing is in progress")
 	}
 
 	if err = s.repo.Task.DeleteTask(taskId); err != nil {
-		return resp
+		return err
 	}
 
-	if err = s.deleteTaskImagesFromDisk(task.Id); err != nil {
-		return resp
-	}
+	s.deleteTaskImagesFromDisk(task.Id)
 
-	resp.Status = http.StatusOK
-	resp.Data = gin.H{"message": "task was successfully deleted"}
-	return resp
+	return err
 }
 
-// deleteTaskImagesFromDisk удаляет папку с изображениями задания с диска
+// deleteTaskImagesFromDisk removes task image folder with content from the disk; returns err.
 func (s *TaskService) deleteTaskImagesFromDisk(taskId int) (err error) {
 
 	subFolderID := taskId % foldersAmount
 	path := fmt.Sprintf("/face track/images/%d/%d", subFolderID, taskId)
 
-	if err = os.RemoveAll(path); err != nil {
-		return err
-	}
-
-	return nil
+	return os.RemoveAll(path)
 }
 
 // AddImageToTask добавляет изображение в бд и на диск
