@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go mod tidy && go build -o face-track main.go
+RUN go mod tidy && go build -o face-track ./cmd
 
 FROM alpine:latest
 
