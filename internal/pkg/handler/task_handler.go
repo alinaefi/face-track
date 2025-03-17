@@ -3,7 +3,7 @@ package handler
 import (
 	"face-track/internal/pkg/middleware"
 	"face-track/internal/pkg/model"
-	"face-track/internal/pkg/service"
+	"face-track/internal/pkg/service/task_service"
 	"net/http"
 	"strconv"
 
@@ -23,7 +23,7 @@ func (h *Handler) setTaskGroup(api *gin.RouterGroup) {
 	}
 }
 
-func respond(c *gin.Context, resp *service.Response) {
+func respond(c *gin.Context, resp *task_service.Response) {
 	c.JSON(resp.Status, resp.Data)
 }
 
@@ -32,7 +32,7 @@ func (h *Handler) getTask(c *gin.Context) {
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
-		respond(c, &service.Response{
+		respond(c, &task_service.Response{
 			Status: http.StatusBadRequest,
 			Data:   gin.H{"error": "invalid task id format"},
 		})
@@ -56,7 +56,7 @@ func (h *Handler) deleteTask(c *gin.Context) {
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
-		respond(c, &service.Response{
+		respond(c, &task_service.Response{
 			Status: http.StatusBadRequest,
 			Data:   gin.H{"error": "invalid task id format"},
 		})
@@ -73,7 +73,7 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
-		respond(c, &service.Response{
+		respond(c, &task_service.Response{
 			Status: http.StatusBadRequest,
 			Data:   gin.H{"error": "invalid task id format"},
 		})
@@ -82,7 +82,7 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 
 	imageName := c.PostForm("imageName")
 	if len(imageName) == 0 {
-		respond(c, &service.Response{
+		respond(c, &task_service.Response{
 			Status: http.StatusBadRequest,
 			Data:   gin.H{"error": "image name cannot be empty"},
 		})
@@ -94,7 +94,7 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 	defer fileData.File.Close()
 
 	if err != nil {
-		respond(c, &service.Response{
+		respond(c, &task_service.Response{
 			Status: http.StatusBadRequest,
 			Data:   gin.H{"error": "failed to get uploaded image"},
 		})
@@ -111,7 +111,7 @@ func (h *Handler) processTask(c *gin.Context) {
 	taskIdStr := c.Param("id")
 	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
-		respond(c, &service.Response{
+		respond(c, &task_service.Response{
 			Status: http.StatusBadRequest,
 			Data:   gin.H{"error": "invalid task id format"},
 		})
@@ -119,14 +119,14 @@ func (h *Handler) processTask(c *gin.Context) {
 	}
 
 	if err = h.service.UpdateTaskStatus(taskId, "in_progress"); err != nil {
-		respond(c, &service.Response{
+		respond(c, &task_service.Response{
 			Status: http.StatusInternalServerError,
 			Data:   gin.H{"error": err.Error()},
 		})
 		return
 	}
 
-	respond(c, &service.Response{
+	respond(c, &task_service.Response{
 		Status: http.StatusOK,
 		Data:   gin.H{"message": "task is being processed"},
 	})
