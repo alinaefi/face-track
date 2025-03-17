@@ -25,6 +25,7 @@ type Task interface {
 	CreateTask() (taskId int, err error)
 	DeleteTask(taskId int) (err error)
 	SaveImageDisk(taskId int, image image.Image, imageName string) (imageRow *model.Image, err error)
+	CreateImage(image *model.Image) (err error)
 	DecodeFile(fileData *model.FileData) (img image.Image, err error)
 	UpdateTaskStatus(taskId int, status string) (err error)
 	GetFaceDetectionData(image *model.Image, token string) (imageData *model.FaceCloudDetectResponse, err error)
