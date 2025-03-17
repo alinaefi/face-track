@@ -48,14 +48,14 @@ To assign the environment variables required for the application to work, refer 
 
 To create an image, navigate to the project's root directory and run the following command in the terminal:
 ```
-    docker-compose build
+    docker-compose -f deployments/docker-compose.yaml up --build
 ```
 
 ## 3. Starting the Container
 
 To start the container, run the following command in the terminal:
 ```
-    docker-compose up
+    docker-compose -f deployments/docker-compose.yaml up
 ```
 Dependency updates, database connection, database migration, and application server startup should occur automatically.
 If you encounter any issues, you can run the application without a container. See section 4.
