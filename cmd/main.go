@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"face-track/internal"
@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func Execute() {
+func main() {
 
 	action := "run-server"
 
