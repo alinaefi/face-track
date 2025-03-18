@@ -344,6 +344,7 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 
 // SaveProcessedData saves processed face data and marks images as "done" in the database.
 func (r *TaskRepo) SaveProcessedData(processedFaces []*task_model.Face, processedImages []*task_model.Image) {
+	var err error
 
 	if len(processedFaces) > 0 {
 		query := `INSERT INTO face 
@@ -367,7 +368,7 @@ func (r *TaskRepo) SaveProcessedData(processedFaces []*task_model.Face, processe
 						:bbox_y
 					)`
 
-		_, err := r.db.NamedExec(query, processedFaces)
+		_, err = r.db.NamedExec(query, processedFaces)
 		if err != nil {
 			panic(err)
 		}
@@ -379,7 +380,10 @@ func (r *TaskRepo) SaveProcessedData(processedFaces []*task_model.Face, processe
 					SET done=true 
 					WHERE id=($1)`
 
-			r.db.Exec(query, image.Id)
+			_, err = r.db.Exec(query, image.Id)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }
