@@ -1,3 +1,6 @@
+// Package service provides the service layer for managing tasks in the face tracking system.
+// It includes methods for interacting with task-related functionality, such as creating, deleting,
+// updating tasks, processing tasks, and adding images to tasks.
 package service
 
 import (
@@ -11,15 +14,24 @@ import (
 )
 
 const (
-	pgDbEnvName   = "FACE_TRACK__PG_NAME"
-	pgDbUserName  = "FACE_TRACK__PG_USER"
+	// pgDbEnvName is the env variable key for the PostgreSQL database name.
+	pgDbEnvName = "FACE_TRACK__PG_NAME"
+
+	// pgDbUserName is the env variable key for the PostgreSQL database username.
+	pgDbUserName = "FACE_TRACK__PG_USER"
+
+	// pgPassEnvName is the env variable key for the PostgreSQL database password.
 	pgPassEnvName = "FACE_TRACK__PG_PASS"
 )
 
+// Service is a struct that embeds the Task interface and provides methods to interact
+// with task-related functionalities.
 type Service struct {
 	Task
 }
 
+// NewServiceWithRepo creates a new instance of Service, initializing it with the task service
+// and connecting to the database using environment variables for PostgreSQL credentials.
 func NewServiceWithRepo() (srvs *Service) {
 	tools.CheckEnvs(pgDbEnvName, pgDbUserName, pgPassEnvName)
 
@@ -35,6 +47,7 @@ func NewServiceWithRepo() (srvs *Service) {
 	}
 }
 
+// Task defines the interface for interacting with task-related functionalities.
 type Task interface {
 	GetTaskById(taskId int) (task *task_model.Task, err error)
 	CreateTask() (taskId int, err error)
