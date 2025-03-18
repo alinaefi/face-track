@@ -7,10 +7,6 @@ import (
 	"os"
 )
 
-const (
-	foldersAmount = 30000
-)
-
 // CheckEnvs checks the environment variables.
 func CheckEnvs(envNames ...string) {
 	for _, env := range envNames {
