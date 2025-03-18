@@ -3,6 +3,7 @@ package task_repo
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"face-track/internal/pkg/clients/face_cloud_client"
 	"face-track/internal/pkg/model/task_model"
 	"face-track/tools"
@@ -31,9 +32,8 @@ func New(db *sqlx.DB) (repo *TaskRepo) {
 	}
 }
 
-// GetTaskById делает запрос к бд и возвращает данные о задании по идентификатору задания
-// или ошибку
-func (r *TaskRepo) GetTaskById(taskId int) (taskRow *task_model.Task, err error) {
+func (r *TaskRepo) GetTaskById(taskId int) (task *task_model.Task, err error) {
+	task = &task_model.Task{}
 
 	query := `SELECT 
 				id, 
@@ -46,9 +46,7 @@ func (r *TaskRepo) GetTaskById(taskId int) (taskRow *task_model.Task, err error)
 			FROM task 
 			WHERE id=$1`
 
-	var task task_model.Task
-
-	err = r.db.QueryRow(query, taskId).Scan(
+	if err = r.db.QueryRow(query, taskId).Scan(
 		&task.Id,
 		&task.Status,
 		&task.Statistics.FacesTotal,
@@ -56,15 +54,16 @@ func (r *TaskRepo) GetTaskById(taskId int) (taskRow *task_model.Task, err error)
 		&task.Statistics.FacesMale,
 		&task.Statistics.AgeFemaleAvg,
 		&task.Statistics.AgeMaleAvg,
-	)
-	if err != nil {
-		return nil, err
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // task not found, return nil task and no error
+		}
+		return nil, err // return database error
 	}
-	return &task, nil
+
+	return task, err
 }
 
-// GetTaskImages делает запрос к бд и возвращает данные об изображениях задания по идентификатору задания
-// или ошибку
 func (r *TaskRepo) GetTaskImages(taskId int) (images []*task_model.Image, err error) {
 
 	query := `SELECT 
@@ -76,17 +75,17 @@ func (r *TaskRepo) GetTaskImages(taskId int) (images []*task_model.Image, err er
 			WHERE task_id=$1`
 
 	if err = r.db.Select(&images, query, taskId); err != nil {
-		return images, err
+		return nil, err
 	}
 
-	return images, nil
+	return images, err
 }
 
-// GetFacesByImageIds делает запрос к бд и возвращает данные о лицах на изображениях задания по идентификаторам изображений
-// или ошибку
 func (r *TaskRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]*task_model.Face, err error) {
-
+	var rows *sqlx.Rows
+	var inArgs []interface{}
 	taskFaces = make(map[int][]*task_model.Face)
+
 	query := `SELECT 
 				id, 
 				image_id, 
@@ -99,13 +98,13 @@ func (r *TaskRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]*task
 			FROM face 
 			WHERE image_id IN (?)`
 
-	query, inArgs, err := sqlx.In(query, imageIds)
+	query, inArgs, err = sqlx.In(query, imageIds)
 	if err != nil {
 		return nil, err
 	}
 	query = r.db.Rebind(query)
 
-	rows, err := r.db.Queryx(query, inArgs...)
+	rows, err = r.db.Queryx(query, inArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -132,11 +131,9 @@ func (r *TaskRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]*task
 		return nil, err
 	}
 
-	return taskFaces, nil
+	return taskFaces, err
 }
 
-// CreateTask осуществляет вставку нового задания в бд и возвращает идентификатор задания
-// или ошибку
 func (r *TaskRepo) CreateTask() (taskId int, err error) {
 
 	query := `INSERT INTO task 
@@ -156,33 +153,32 @@ func (r *TaskRepo) CreateTask() (taskId int, err error) {
 		return 0, err
 	}
 
-	return taskId, nil
+	return taskId, err
 }
 
-// DeleteTask удаляет из бд задание и все связанные с ним данные об изображениях и лицах
-// возвращает ошибку, если удаление не удалось
 func (r *TaskRepo) DeleteTask(taskId int) (err error) {
+	var result sql.Result
+	var rowsDeleted int64
 
 	query := `DELETE FROM task WHERE id=($1)`
 
-	result, err := r.db.Exec(query, taskId)
+	result, err = r.db.Exec(query, taskId)
 	if err != nil {
 		return err
 	}
 
-	rowsDeleted, err := result.RowsAffected()
+	rowsDeleted, err = result.RowsAffected()
 	if err != nil {
 		return err
 	}
 
 	if rowsDeleted == 0 {
-		return err
+		return errors.New("operation unsuccessful: row not found")
 	}
 
-	return nil
+	return err
 }
 
-// SaveImageDisk сохраняет изображение в файловой системе и возвращает его или ошибку
 func (r *TaskRepo) SaveImageDisk(taskId int, image image.Image, imageName string) (imageRow *task_model.Image, err error) {
 
 	imageRow = &task_model.Image{
@@ -199,7 +195,6 @@ func (r *TaskRepo) SaveImageDisk(taskId int, image image.Image, imageName string
 	return imageRow, nil
 }
 
-// getImagePath создает папки для изображений задания и возвращает путь к изображению на диске
 func (r *TaskRepo) getImagePath(imageRow *task_model.Image) (path string) {
 
 	subFolderID := imageRow.TaskId % foldersAmount
@@ -209,8 +204,9 @@ func (r *TaskRepo) getImagePath(imageRow *task_model.Image) (path string) {
 	return fmt.Sprintf("%s/%s.jpeg", folderToSave, imageRow.ImageName)
 }
 
-// CreateImage сохраняет данные об изображении в бд, возвращает ошибку в случае неудачного запроса
 func (r *TaskRepo) CreateImage(image *task_model.Image) (err error) {
+	var result sql.Result
+	var rowsAffected int64
 
 	query := `INSERT INTO task_image 
 				(
@@ -219,25 +215,23 @@ func (r *TaskRepo) CreateImage(image *task_model.Image) (err error) {
 				) 
 			VALUES ($1, $2)`
 
-	result, err := r.db.Exec(query, image.TaskId, image.ImageName)
+	result, err = r.db.Exec(query, image.TaskId, image.ImageName)
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err = result.RowsAffected()
 	if err != nil {
 		return err
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("failed to insert image data")
+		return errors.New("operation unsuccessful: row not found")
 	}
 
-	return nil
+	return err
 }
 
-// DecodeFile декодирует объект типа файл в объект типа Image
-// возвращает объект типа Image или ошибку
 func (r *TaskRepo) DecodeFile(fileData *task_model.FileData) (img image.Image, err error) {
 
 	img, _, err = image.Decode(fileData.File)
@@ -245,37 +239,38 @@ func (r *TaskRepo) DecodeFile(fileData *task_model.FileData) (img image.Image, e
 		return nil, err
 	}
 
-	return img, nil
+	return img, err
 }
 
-// UpdateTaskStatus обновляет статус задания
 func (r *TaskRepo) UpdateTaskStatus(taskId int, status string) (err error) {
+	var result sql.Result
+	var rowsAffected int64
 
 	query := `UPDATE task 
 				SET task_status=$1 
 				WHERE id=$2`
 
-	result, err := r.db.Exec(query, status, taskId)
+	result, err = r.db.Exec(query, status, taskId)
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err = result.RowsAffected()
 	if err != nil {
 		log.Println(err)
 	}
 
 	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		return errors.New("operation unsuccessful: row not found")
 	}
 
-	return nil
+	return err
 }
 
-// GetFaceDetectionData отправляет запрос к API Face Cloud и возвращает ответ с API или ошибку
+// GetFaceDetectionData requests Face Cloud API to detect faces on the specified image and returns response or error.
 func (r *TaskRepo) GetFaceDetectionData(image *task_model.Image, token string) (imageData *task_model.FaceCloudDetectResponse, err error) {
 
-	// готовим изображение
+	// prepare image
 	imagePath := r.getImagePath(image)
 	file, err := os.Open(imagePath)
 	if err != nil {
@@ -283,25 +278,24 @@ func (r *TaskRepo) GetFaceDetectionData(image *task_model.Image, token string) (
 	}
 	defer file.Close()
 
-	// готовим и отправляем запрос
+	// send request
 	data, err := face_cloud_client.DetectFaces(file, token)
 	if err != nil {
 		return nil, err
 	}
 
-	// распаковываем ответ с API
+	// process response data
 	if err = json.Unmarshal(data, &imageData); err != nil {
 		return nil, err
 	}
 
-	return imageData, nil
+	return imageData, err
 }
 
-// GetFaceCloudToken отправляет запрос к API Face Cloud на получение токена авторизации
-// возвращает токен или ошибку
+// GetFaceCloudToken requests login to Face Cloud and returns JWT access token or error.
 func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 
-	// готовим параметры запроса
+	// prepare request params
 	tools.CheckEnvs(faceCloudApiUrlEnvName, faceCloudUserEnvName, faceCloudPasswordEnvName)
 	reqBody := task_model.FaceCloudLoginRequest{
 		Email:    os.Getenv(faceCloudUserEnvName),
@@ -313,7 +307,7 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 		return token, err
 	}
 
-	// готовим и отправляем запрос
+	// send request
 	data, err := face_cloud_client.Login(reqBodyBytes)
 	if err != nil {
 		return token, err
@@ -321,15 +315,14 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 
 	var response task_model.FaceCloudLoginResponse
 
-	// распаковываем ответ с API
+	// process response data
 	if err = json.Unmarshal(data, &response); err != nil {
 		return token, err
 	}
 
-	return response.Data.AccessToken, nil
+	return response.Data.AccessToken, err
 }
 
-// SaveProcessedData сохраняет в бд данные об обработанных изображениях и лицах
 func (r *TaskRepo) SaveProcessedData(processedFaces []*task_model.Face, processedImages []*task_model.Image) {
 
 	if len(processedFaces) > 0 {
@@ -371,9 +364,10 @@ func (r *TaskRepo) SaveProcessedData(processedFaces []*task_model.Face, processe
 	}
 }
 
-// UpdateTaskStatistics обновляет в бд данные статистики задания
-// возвращает ошибку в случае неудачного запроса
 func (r *TaskRepo) UpdateTaskStatistics(task *task_model.Task) (err error) {
+	var result sql.Result
+	var rowsAffected int64
+
 	query := `
 		UPDATE task 
 		SET task_status = :task_status, 
@@ -384,19 +378,19 @@ func (r *TaskRepo) UpdateTaskStatistics(task *task_model.Task) (err error) {
 		    age_male_avg = :age_male_avg 
 		WHERE id = :id`
 
-	res, err := r.db.NamedExec(query, task)
+	result, err = r.db.NamedExec(query, task)
 	if err != nil {
-		log.Println(err)
-	}
-
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		log.Println(err)
-	}
-
-	if rowsAffected == 0 {
 		return err
 	}
 
-	return nil
+	rowsAffected, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("operation unsuccessful: row not found")
+	}
+
+	return err
 }
