@@ -1,3 +1,4 @@
+// Package task_service provides the functionality to interact with task-related data in the repository.
 package task_service
 
 import (
@@ -14,22 +15,20 @@ import (
 )
 
 const (
+	// foldersAmount defines the maximum number of nested folders for organizing task images.
 	foldersAmount = 30000
 )
 
+// TaskService is a struct that holds methods for managing tasks and processing associated images.
 type TaskService struct {
 	repo *repo.Repo
 }
 
+// New creates a new instance of TaskService, initializing it with the provided repo.
 func New(repo *repo.Repo) *TaskService {
 	return &TaskService{
 		repo: repo,
 	}
-}
-
-type Response struct {
-	Status int
-	Data   interface{}
 }
 
 // GetTaskById returns task data, images, and faces associated with it by task ID.
