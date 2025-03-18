@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	foldersAmount            = 30000 // не храним в одной папке более 32000 файлов/папок
+	foldersAmount            = 30000 // limit number of nested folders
 	faceCloudApiUrlEnvName   = "FACE_CLOUD__API_URL"
 	faceCloudUserEnvName     = "FACE_CLOUD__API_USER"
 	faceCloudPasswordEnvName = "FACE_CLOUD__API_PASS"
