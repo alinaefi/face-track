@@ -3,7 +3,6 @@ package handler
 import (
 	"face-track/internal/pkg/middleware"
 	"face-track/internal/pkg/model/task_model"
-	"face-track/internal/pkg/service/task_service"
 	"log"
 	"net/http"
 
@@ -21,10 +20,6 @@ func (h *Handler) setTaskGroup(api *gin.RouterGroup) {
 		taskApiGroup.PATCH("/tasks/:id", h.addImageToTask)
 		taskApiGroup.PATCH("/tasks/:id/process", h.processTask)
 	}
-}
-
-func respond(c *gin.Context, resp *task_service.Response) {
-	c.JSON(resp.Status, resp.Data)
 }
 
 func (h *Handler) getTask(c *gin.Context) {
