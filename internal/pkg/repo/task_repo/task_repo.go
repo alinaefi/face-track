@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"face-track/internal/pkg/clients/face_cloud_client"
+	"face-track/internal/pkg/model/face_cloud_model"
 	"face-track/internal/pkg/model/task_model"
 	"face-track/tools"
 	"fmt"
@@ -265,7 +266,7 @@ func (r *TaskRepo) UpdateTaskStatus(taskId int, status string) (err error) {
 }
 
 // GetFaceDetectionData requests Face Cloud API to detect faces on the specified image and returns response or error.
-func (r *TaskRepo) GetFaceDetectionData(image *task_model.Image, token string) (imageData *task_model.FaceCloudDetectResponse, err error) {
+func (r *TaskRepo) GetFaceDetectionData(image *task_model.Image, token string) (imageData *face_cloud_model.FaceCloudDetectResponse, err error) {
 
 	// prepare image
 	imagePath := r.getImagePath(image)
@@ -294,7 +295,7 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 
 	// prepare request params
 	tools.CheckEnvs(faceCloudApiUrlEnvName, faceCloudUserEnvName, faceCloudPasswordEnvName)
-	reqBody := task_model.FaceCloudLoginRequest{
+	reqBody := face_cloud_model.FaceCloudLoginRequest{
 		Email:    os.Getenv(faceCloudUserEnvName),
 		Password: os.Getenv(faceCloudPasswordEnvName),
 	}
@@ -310,7 +311,7 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 		return token, err
 	}
 
-	var response task_model.FaceCloudLoginResponse
+	var response face_cloud_model.FaceCloudLoginResponse
 
 	// process response data
 	if err = json.Unmarshal(data, &response); err != nil {

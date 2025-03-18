@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"face-track/internal/pkg/model/face_cloud_model"
 	"face-track/internal/pkg/model/task_model"
 	"face-track/internal/pkg/repo/task_repo"
 	"image"
@@ -28,7 +29,7 @@ type Task interface {
 	CreateImage(image *task_model.Image) (err error)
 	DecodeFile(fileData *task_model.FileData) (img image.Image, err error)
 	UpdateTaskStatus(taskId int, status string) (err error)
-	GetFaceDetectionData(image *task_model.Image, token string) (imageData *task_model.FaceCloudDetectResponse, err error)
+	GetFaceDetectionData(image *task_model.Image, token string) (imageData *face_cloud_model.FaceCloudDetectResponse, err error)
 	GetFaceCloudToken() (token string, err error)
 	SaveProcessedData(processedFaces []*task_model.Face, processedImages []*task_model.Image)
 	UpdateTaskStatistics(task *task_model.Task) (err error)
