@@ -90,9 +90,11 @@ func (s *TaskService) DeleteTask(taskId int) (err error) {
 		return err
 	}
 
-	s.deleteTaskImagesFromDisk(task.Id)
+	if err = s.deleteTaskImagesFromDisk(task.Id); err != nil {
+		log.Printf("error deleting images from disk: %v\n", err)
+	}
 
-	return err
+	return nil
 }
 
 // deleteTaskImagesFromDisk removes task image folder with content from the disk; returns err.
