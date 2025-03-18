@@ -1,3 +1,5 @@
+// Package task_repo provides methods for managing tasks related data in the database, and interacting
+// with the Face Cloud API for face detection and processing.
 package task_repo
 
 import (
@@ -17,22 +19,33 @@ import (
 )
 
 const (
-	foldersAmount            = 30000 // limit number of nested folders
-	faceCloudApiUrlEnvName   = "FACE_CLOUD__API_URL"
-	faceCloudUserEnvName     = "FACE_CLOUD__API_USER"
+	// foldersAmount defines the maximum number of nested folders for organizing images.
+	foldersAmount = 30000
+
+	// faceCloudApiUrlEnvName is the env variable key for the Face Cloud API URL.
+	faceCloudApiUrlEnvName = "FACE_CLOUD__API_URL"
+
+	// faceCloudUserEnvName is the env variable key for the Face Cloud API user's email.
+	faceCloudUserEnvName = "FACE_CLOUD__API_USER"
+
+	// faceCloudPasswordEnvName is the env variable key for the Face Cloud API user's password.
 	faceCloudPasswordEnvName = "FACE_CLOUD__API_PASS"
 )
 
+// TaskRepo represents a repository for managing tasks and interacting with the database.
+// It provides methods for CRUD operations on tasks, image management, and communication with the Face Cloud API.
 type TaskRepo struct {
 	db *sqlx.DB
 }
 
+// New creates a new TaskRepo instance with the provided database connection.
 func New(db *sqlx.DB) (repo *TaskRepo) {
 	return &TaskRepo{
 		db: db,
 	}
 }
 
+// GetTaskById retrieves a task by its ID from the database.
 func (r *TaskRepo) GetTaskById(taskId int) (task *task_model.Task, err error) {
 	task = &task_model.Task{}
 
@@ -62,6 +75,7 @@ func (r *TaskRepo) GetTaskById(taskId int) (task *task_model.Task, err error) {
 	return task, err
 }
 
+// GetTaskImages retrieves all images associated with a given task ID from the database.
 func (r *TaskRepo) GetTaskImages(taskId int) (images []*task_model.Image, err error) {
 
 	query := `SELECT 
@@ -79,6 +93,7 @@ func (r *TaskRepo) GetTaskImages(taskId int) (images []*task_model.Image, err er
 	return images, err
 }
 
+// GetFacesByImageIds retrieves faces associated with the given image IDs.
 func (r *TaskRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]*task_model.Face, err error) {
 	var rows *sqlx.Rows
 	var inArgs []interface{}
@@ -132,6 +147,7 @@ func (r *TaskRepo) GetFacesByImageIds(imageIds []int) (taskFaces map[int][]*task
 	return taskFaces, err
 }
 
+// CreateTask creates a new task and returns the task ID.
 func (r *TaskRepo) CreateTask() (taskId int, err error) {
 
 	query := `INSERT INTO task 
@@ -154,6 +170,7 @@ func (r *TaskRepo) CreateTask() (taskId int, err error) {
 	return taskId, err
 }
 
+// DeleteTask deletes a task by its ID from the database.
 func (r *TaskRepo) DeleteTask(taskId int) (err error) {
 	var result sql.Result
 	var rowsDeleted int64
@@ -177,6 +194,7 @@ func (r *TaskRepo) DeleteTask(taskId int) (err error) {
 	return err
 }
 
+// SaveImageDisk saves an image to disk and returns an image record with task ID and image name.
 func (r *TaskRepo) SaveImageDisk(taskId int, image image.Image, imageName string) (imageRow *task_model.Image, err error) {
 
 	imageRow = &task_model.Image{
@@ -202,6 +220,7 @@ func (r *TaskRepo) getImagePath(imageRow *task_model.Image) (path string) {
 	return fmt.Sprintf("%s/%s.jpeg", folderToSave, imageRow.ImageName)
 }
 
+// CreateImage inserts a new image record into the task_image table.
 func (r *TaskRepo) CreateImage(image *task_model.Image) (err error) {
 	var result sql.Result
 	var rowsAffected int64
@@ -230,6 +249,7 @@ func (r *TaskRepo) CreateImage(image *task_model.Image) (err error) {
 	return err
 }
 
+// DecodeFile decodes the image file from the provided file data and returns the decoded image.
 func (r *TaskRepo) DecodeFile(fileData *task_model.FileData) (img image.Image, err error) {
 
 	img, _, err = image.Decode(fileData.File)
@@ -240,6 +260,7 @@ func (r *TaskRepo) DecodeFile(fileData *task_model.FileData) (img image.Image, e
 	return img, err
 }
 
+// UpdateTaskStatus updates the status of a task by its ID.
 func (r *TaskRepo) UpdateTaskStatus(taskId int, status string) (err error) {
 	var result sql.Result
 	var rowsAffected int64
@@ -321,6 +342,7 @@ func (r *TaskRepo) GetFaceCloudToken() (token string, err error) {
 	return response.Data.AccessToken, err
 }
 
+// SaveProcessedData saves processed face data and marks images as "done" in the database.
 func (r *TaskRepo) SaveProcessedData(processedFaces []*task_model.Face, processedImages []*task_model.Image) {
 
 	if len(processedFaces) > 0 {
@@ -362,6 +384,7 @@ func (r *TaskRepo) SaveProcessedData(processedFaces []*task_model.Face, processe
 	}
 }
 
+// UpdateTaskStatistics updates the statistics for a task, including gender and age data.
 func (r *TaskRepo) UpdateTaskStatistics(task *task_model.Task) (err error) {
 	var result sql.Result
 	var rowsAffected int64

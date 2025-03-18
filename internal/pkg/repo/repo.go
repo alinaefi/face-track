@@ -1,3 +1,5 @@
+// Package repo provides functionality to interact with task-related data in the database.
+// It includes methods for creating, updating, deleting, and fetching tasks, images, and face detection data.
 package repo
 
 import (
@@ -9,16 +11,19 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Repo is a struct that embeds the Task interface and allows interaction with task-related functions.
 type Repo struct {
 	Task
 }
 
+// NewRepo creates a new instance of Repo, initializing it with the TaskRepo interface implementation.
 func NewRepo(db *sqlx.DB) *Repo {
 	return &Repo{
 		Task: task_repo.New(db),
 	}
 }
 
+// Task defines the interface for interacting with task-related functions.
 type Task interface {
 	GetTaskById(taskId int) (taskRow *task_model.Task, err error)
 	GetTaskImages(taskId int) (images []*task_model.Image, err error)
