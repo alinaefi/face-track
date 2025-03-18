@@ -14,11 +14,11 @@ func (h *Handler) setTaskGroup(api *gin.RouterGroup) {
 	authMiddleware := middleware.NewAuthMiddleware()
 	taskApiGroup.Use(authMiddleware.BasicAuthMiddleware())
 	{
-		taskApiGroup.GET("/tasks/:id", h.getTask)
-		taskApiGroup.POST("/tasks", h.createTask)
-		taskApiGroup.DELETE("/tasks/:id", h.deleteTask)
-		taskApiGroup.PATCH("/tasks/:id", h.addImageToTask)
-		taskApiGroup.PATCH("/tasks/:id/process", h.processTask)
+		taskApiGroup.GET("/:id", h.getTask)
+		taskApiGroup.POST("/", h.createTask)
+		taskApiGroup.DELETE("/:id", h.deleteTask)
+		taskApiGroup.PATCH("/:id", h.addImageToTask)
+		taskApiGroup.PATCH("/:id/process", h.processTask)
 	}
 }
 
