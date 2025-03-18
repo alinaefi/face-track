@@ -55,10 +55,7 @@ func (r *TaskRepo) GetTaskById(taskId int) (task *task_model.Task, err error) {
 		&task.Statistics.AgeFemaleAvg,
 		&task.Statistics.AgeMaleAvg,
 	); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil // task not found, return nil task and no error
-		}
-		return nil, err // return database error
+		return nil, err
 	}
 
 	return task, err
