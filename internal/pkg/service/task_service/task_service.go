@@ -165,11 +165,13 @@ func (s *TaskService) UpdateTaskStatus(taskId int, status string) (err error) {
 
 // ProcessTask processes tasks' images concurrently.
 func (s *TaskService) ProcessTask(taskId int) {
+	var err error
+	var task *task_model.Task
 
-	task, err := s.getFullTaskData(taskId)
+	task, err = s.getFullTaskData(taskId)
 	if err != nil {
 		log.Println(err)
-		s.repo.Task.UpdateTaskStatus(taskId, "error")
+		_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
 		return
 	}
 	if task.Status == "completed" {
