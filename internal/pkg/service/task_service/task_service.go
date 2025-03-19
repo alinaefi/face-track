@@ -51,8 +51,8 @@ func (s *TaskService) getFullTaskData(taskId int) (task *task_model.Task, err er
 
 	if len(task.Images) > 0 {
 		imageIds := make([]int, len(task.Images))
-		for _, img := range task.Images {
-			imageIds = append(imageIds, img.Id)
+		for i, img := range task.Images {
+			imageIds[i] = img.Id
 		}
 
 		faces, err := s.repo.Task.GetFacesByImageIds(imageIds)
