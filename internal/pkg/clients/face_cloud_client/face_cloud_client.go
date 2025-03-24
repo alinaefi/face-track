@@ -75,7 +75,7 @@ func reqUrl(req *http.Request) (data []byte, err error) {
 	}
 
 	if resp.StatusCode >= 400 && resp.StatusCode <= 599 {
-		return nil, errors.New("server returned errpr with status: " + resp.Status)
+		return nil, errors.New("server returned error with status: " + resp.Status)
 	}
 
 	return data, nil
