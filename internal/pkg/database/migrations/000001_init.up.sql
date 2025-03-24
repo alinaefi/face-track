@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS task (
     age_male_avg INT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE IF EXISTS public.task OWNER to "face-track";
+
+
 CREATE TABLE IF NOT EXISTS task_image (
     id SERIAL PRIMARY KEY,
     task_id INT NOT NULL, 
@@ -22,6 +25,9 @@ CREATE TABLE IF NOT EXISTS task_image (
 
     FOREIGN KEY (task_id) REFERENCES task (id) ON DELETE CASCADE
 );
+
+ALTER TABLE IF EXISTS public.task_image OWNER to "face-track";
+
 
 CREATE TABLE IF NOT EXISTS face (
     id SERIAL PRIMARY KEY,
@@ -38,3 +44,4 @@ CREATE TABLE IF NOT EXISTS face (
     FOREIGN KEY (image_id) REFERENCES task_image (id) ON DELETE CASCADE
 );
 
+ALTER TABLE IF EXISTS public.face OWNER to "face-track";
