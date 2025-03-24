@@ -85,10 +85,13 @@ func (h *Handler) deleteTask(c *gin.Context) {
 }
 
 func (h *Handler) addImageToTask(c *gin.Context) {
-	var req *task_model.TaskIdRequest
+
+	var taskId int
 	var err error
 
-	err = c.BindJSON(&req)
+	taskIdStr := c.Param("id")
+
+	taskId, err = strconv.Atoi(taskIdStr)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -112,7 +115,7 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 		return
 	}
 
-	err = h.service.AddImageToTask(req.TaskId, imageName, fileData)
+	err = h.service.AddImageToTask(taskId, imageName, fileData)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
