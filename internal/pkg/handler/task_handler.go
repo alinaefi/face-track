@@ -5,6 +5,7 @@ import (
 	"face-track/internal/pkg/model/task_model"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,18 +24,21 @@ func (h *Handler) setTaskGroup(api *gin.RouterGroup) {
 }
 
 func (h *Handler) getTask(c *gin.Context) {
-	var req *task_model.TaskIdRequest
+
+	var taskId int
 	var err error
 	var task *task_model.Task
 
-	err = c.BindJSON(&req)
+	taskIdStr := c.Param("id")
+
+	taskId, err = strconv.Atoi(taskIdStr)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	task, err = h.service.GetTaskById(req.TaskId)
+	task, err = h.service.GetTaskById(taskId)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
