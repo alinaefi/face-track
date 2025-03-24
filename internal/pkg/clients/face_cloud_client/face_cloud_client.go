@@ -20,7 +20,7 @@ const (
 // DetectFases sends a request to the Face Cloud API to detect faces in images.
 func DetectFaces(file *os.File, token string) (b []byte, err error) {
 
-	url := fmt.Sprintf("%s/v1/detect?demographics=true", os.Getenv(faceCloudApiUrlEnvName))
+	url := fmt.Sprintf("%s/detect?demographics=true", os.Getenv(faceCloudApiUrlEnvName))
 
 	req, err := http.NewRequest("POST", url, file)
 	if err != nil {
@@ -42,7 +42,7 @@ func DetectFaces(file *os.File, token string) (b []byte, err error) {
 // Login sends a request to the Face Cloud API to obtain a JWT token.
 func Login(body []byte) (b []byte, err error) {
 
-	url := fmt.Sprintf("%s/v1/login", os.Getenv(faceCloudApiUrlEnvName))
+	url := fmt.Sprintf("%s/login", os.Getenv(faceCloudApiUrlEnvName))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
