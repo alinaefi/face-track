@@ -213,9 +213,11 @@ func (r *TaskRepo) SaveImageDisk(taskId int, image image.Image, imageName string
 
 func (r *TaskRepo) getImagePath(imageRow *task_model.Image) (path string) {
 
+	homeDir, _ := os.UserHomeDir() // Get the home directory
 	subFolderID := imageRow.TaskId % foldersAmount
-	folderToSave := fmt.Sprintf("/face track/images/%d/%d", subFolderID, imageRow.TaskId)
-	tools.CreateFolderIfNotExist(folderToSave)
+	folderToSave := fmt.Sprintf("%s/face-track/images/%d/%d", homeDir, subFolderID, imageRow.TaskId)
+
+	tools.CreateFolderIfNotExist(folderToSave) // Ensure folder exists
 
 	return fmt.Sprintf("%s/%s.jpeg", folderToSave, imageRow.ImageName)
 }
