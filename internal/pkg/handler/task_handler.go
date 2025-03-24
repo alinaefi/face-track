@@ -126,17 +126,20 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 }
 
 func (h *Handler) processTask(c *gin.Context) {
-	var req *task_model.TaskIdRequest
+
+	var taskId int
 	var err error
 
-	err = c.BindJSON(&req)
+	taskIdStr := c.Param("id")
+
+	taskId, err = strconv.Atoi(taskIdStr)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = h.service.UpdateTaskStatus(req.TaskId, "in_progress")
+	err = h.service.UpdateTaskStatus(taskId, "in_progress")
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -145,5 +148,5 @@ func (h *Handler) processTask(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": "task is being processed"})
 
-	h.service.ProcessTask(req.TaskId)
+	h.service.ProcessTask(taskId)
 }
