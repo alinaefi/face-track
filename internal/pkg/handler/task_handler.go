@@ -61,17 +61,20 @@ func (h *Handler) createTask(c *gin.Context) {
 }
 
 func (h *Handler) deleteTask(c *gin.Context) {
-	var req *task_model.TaskIdRequest
+
+	var taskId int
 	var err error
 
-	err = c.BindJSON(&req)
+	taskIdStr := c.Param("id")
+
+	taskId, err = strconv.Atoi(taskIdStr)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = h.service.DeleteTask(req.TaskId)
+	err = h.service.DeleteTask(taskId)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
