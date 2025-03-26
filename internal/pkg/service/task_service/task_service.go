@@ -107,9 +107,9 @@ func (s *TaskService) deleteTaskImagesFromDisk(taskId int) (err error) {
 }
 
 // AddImageToTask validates and adds a new image to task: to disk and database.
-func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *task_model.FileData) (err error) {
+func (s *TaskService) AddImageToTask(taskId int, fileData *task_model.FileData) (err error) {
 
-	if err = s.validateTaskImage(taskId, imageName, fileData); err != nil {
+	if err = s.validateTaskImage(taskId, fileData); err != nil {
 		return err
 	}
 
@@ -121,7 +121,8 @@ func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *tas
 	}
 
 	// save image on disk
-	imageRow, err := s.repo.Task.SaveImageDisk(taskId, image, imageName)
+	fileName := fileData.FileHeader.Filename
+	imageRow, err := s.repo.Task.SaveImageDisk(taskId, image, fileName)
 	if err != nil {
 		return err
 	}
@@ -130,7 +131,7 @@ func (s *TaskService) AddImageToTask(taskId int, imageName string, fileData *tas
 }
 
 // validateImage validates the image and related task data; returns error.
-func (s *TaskService) validateTaskImage(taskId int, imageName string, fileData *task_model.FileData) (err error) {
+func (s *TaskService) validateTaskImage(taskId int, fileData *task_model.FileData) (err error) {
 	var task *task_model.Task
 
 	// validate file extension
@@ -138,6 +139,7 @@ func (s *TaskService) validateTaskImage(taskId int, imageName string, fileData *
 		return errors.New("unsupported file extension")
 	}
 
+	// TO DO retrieve only task data
 	task, err = s.getFullTaskData(taskId)
 	if err != nil {
 		return err
@@ -148,13 +150,6 @@ func (s *TaskService) validateTaskImage(taskId int, imageName string, fileData *
 		return errors.New("failed to add image to task: task processing is in progress")
 	}
 
-	// TO DO allow same names for images
-	// validate image file name
-	for _, image := range task.Images {
-		if image.ImageName == imageName {
-			return errors.New("failed to add image to task: image with specified name already exists")
-		}
-	}
 	return err
 }
 

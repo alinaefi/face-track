@@ -98,13 +98,6 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 		return
 	}
 
-	imageName := c.PostForm("imageName")
-	if len(imageName) == 0 {
-		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "image name cannot be empty"})
-		return
-	}
-
 	fileData := &task_model.FileData{}
 	fileData.File, fileData.FileHeader, err = c.Request.FormFile("image")
 	defer fileData.File.Close()
@@ -115,7 +108,7 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 		return
 	}
 
-	err = h.service.AddImageToTask(taskId, imageName, fileData)
+	err = h.service.AddImageToTask(taskId, fileData)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
