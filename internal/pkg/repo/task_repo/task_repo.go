@@ -14,6 +14,8 @@ import (
 	"image"
 	"log"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -197,9 +199,12 @@ func (r *TaskRepo) DeleteTask(taskId int) (err error) {
 // SaveImageDisk saves an image to disk and returns an image record with task ID and image name.
 func (r *TaskRepo) SaveImageDisk(taskId int, image image.Image, imageName string) (imageRow *task_model.Image, err error) {
 
+	// Create unique file name
+	uniqueFileName := getUniqueFilename(imageName)
+
 	imageRow = &task_model.Image{
 		TaskId:    taskId,
-		ImageName: imageName,
+		ImageName: uniqueFileName,
 	}
 
 	path := r.getImagePath(imageRow)
@@ -219,7 +224,16 @@ func (r *TaskRepo) getImagePath(imageRow *task_model.Image) (path string) {
 
 	tools.CreateFolderIfNotExist(folderToSave) // Ensure folder exists
 
-	return fmt.Sprintf("%s/%s.jpeg", folderToSave, imageRow.ImageName)
+	return fmt.Sprintf("%s/%s", folderToSave, imageRow.ImageName)
+}
+
+func getUniqueFilename(filename string) string {
+
+	ext := filepath.Ext(filename)             // Get file extension
+	name := filename[:len(filename)-len(ext)] // Get name without extension
+	timestamp := time.Now().UnixNano()        // Use nanoseconds to avoid collisions
+
+	return fmt.Sprintf("%s_%d%s", name, timestamp, ext)
 }
 
 // CreateImage inserts a new image record into the task_image table.
