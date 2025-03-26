@@ -132,22 +132,17 @@ func (s *TaskService) AddImageToTask(taskId int, fileData *task_model.FileData) 
 
 // validateImage validates the image and related task data; returns error.
 func (s *TaskService) validateTaskImage(taskId int, fileData *task_model.FileData) (err error) {
-	var task *task_model.Task
 
 	// validate file extension
 	if fileData.FileHeader.Header.Get("Content-Type") != "image/jpeg" {
 		return errors.New("unsupported file extension")
 	}
 
-	// TO DO retrieve only task data
-	task, err = s.getFullTaskData(taskId)
-	if err != nil {
-		return err
-	}
+	// Check task status
+	taskStatusNew := s.repo.ConfirmTaskStatus(taskId, "new")
 
-	// check task status
-	if task.Status != "new" {
-		return errors.New("failed to add image to task: task processing is in progress")
+	if !taskStatusNew {
+		return errors.New("failed to add image to task: task status does not allow adding images")
 	}
 
 	return err
