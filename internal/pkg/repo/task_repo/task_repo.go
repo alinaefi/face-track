@@ -276,6 +276,25 @@ func (r *TaskRepo) DecodeFile(fileData *task_model.FileData) (img image.Image, e
 	return img, err
 }
 
+// ConfirmTaskStatus checks whether task has a specified task status.
+func (r *TaskRepo) ConfirmTaskStatus(taskId int, status string) (ok bool) {
+
+	var taskStatus string
+
+	query := `SELECT 
+				task_status, 
+			FROM task 
+			WHERE id=$1`
+
+	if err := r.db.QueryRow(query, taskId).Scan(
+		&taskStatus,
+	); err != nil {
+		return false
+	}
+
+	return taskStatus == status
+}
+
 // UpdateTaskStatus updates the status of a task by its ID.
 func (r *TaskRepo) UpdateTaskStatus(taskId int, status string) (err error) {
 	var result sql.Result

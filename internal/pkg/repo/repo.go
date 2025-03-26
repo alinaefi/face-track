@@ -33,6 +33,7 @@ type Task interface {
 	SaveImageDisk(taskId int, image image.Image, imageName string) (imageRow *task_model.Image, err error)
 	CreateImage(image *task_model.Image) (err error)
 	DecodeFile(fileData *task_model.FileData) (img image.Image, err error)
+	ConfirmTaskStatus(taskId int, status string) (ok bool)
 	UpdateTaskStatus(taskId int, status string) (err error)
 	GetFaceDetectionData(image *task_model.Image, token string) (imageData *face_cloud_model.FaceCloudDetectResponse, err error)
 	GetFaceCloudToken() (token string, err error)
