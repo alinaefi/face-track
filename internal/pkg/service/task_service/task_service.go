@@ -257,10 +257,11 @@ func (s *TaskService) concludeTask(task *task_model.Task) {
 		for _, face := range image.Faces {
 			totalFaces++
 
-			if face.Gender == "male" {
+			switch face.Gender {
+			case "male":
 				maleFaces++
 				totalMaleAge += face.Age
-			} else if face.Gender == "female" {
+			case "female":
 				femaleFaces++
 				totalFemaleAge += face.Age
 			}
