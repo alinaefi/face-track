@@ -98,7 +98,7 @@ func (s *TaskService) DeleteTask(taskId int) (err error) {
 }
 
 // deleteTaskImagesFromDisk removes task image folder with content from the disk; returns err.
-func (s *TaskService) deleteTaskImagesFromDisk(taskId int) (err error) {
+func (s *TaskService) deleteTaskImagesFromDisk(taskId int) error {
 
 	subFolderID := taskId % foldersAmount
 	path := fmt.Sprintf("/face track/images/%d/%d", subFolderID, taskId)
@@ -131,7 +131,7 @@ func (s *TaskService) AddImageToTask(taskId int, fileData *task_model.FileData) 
 }
 
 // validateImage validates the image and related task data; returns error.
-func (s *TaskService) validateTaskImage(taskId int, fileData *task_model.FileData) (err error) {
+func (s *TaskService) validateTaskImage(taskId int, fileData *task_model.FileData) error {
 
 	// validate file extension
 	if fileData.FileHeader.Header.Get("Content-Type") != "image/jpeg" {
@@ -145,11 +145,11 @@ func (s *TaskService) validateTaskImage(taskId int, fileData *task_model.FileDat
 		return errors.New("failed to add image to task: task status does not allow adding images")
 	}
 
-	return err
+	return nil
 }
 
 // UpdateTaskStatus updates the task status to the specified value.
-func (s *TaskService) UpdateTaskStatus(taskId int, status string) (err error) {
+func (s *TaskService) UpdateTaskStatus(taskId int, status string) error {
 	return s.repo.UpdateTaskStatus(taskId, status)
 }
 
