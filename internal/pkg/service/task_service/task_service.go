@@ -39,12 +39,12 @@ func (s *TaskService) GetTaskById(taskId int) (task *task_model.Task, err error)
 // GetTaskById returns task data as an object.
 func (s *TaskService) getFullTaskData(taskId int) (task *task_model.Task, err error) {
 
-	task, err = s.repo.Task.GetTaskById(taskId)
+	task, err = s.repo.GetTaskById(taskId)
 	if err != nil {
 		return task, err
 	}
 
-	task.Images, err = s.repo.Task.GetTaskImages(taskId)
+	task.Images, err = s.repo.GetTaskImages(taskId)
 	if err != nil {
 		return task, err
 	}
@@ -55,7 +55,7 @@ func (s *TaskService) getFullTaskData(taskId int) (task *task_model.Task, err er
 			imageIds[i] = img.Id
 		}
 
-		faces, err := s.repo.Task.GetFacesByImageIds(imageIds)
+		faces, err := s.repo.GetFacesByImageIds(imageIds)
 		if err != nil {
 			return task, err
 		}
@@ -70,14 +70,14 @@ func (s *TaskService) getFullTaskData(taskId int) (task *task_model.Task, err er
 
 // CreateTask creates new task and returns its ID.
 func (s *TaskService) CreateTask() (taskId int, err error) {
-	return s.repo.Task.CreateTask()
+	return s.repo.CreateTask()
 }
 
 // DeleteTask deletes all task data from db and disk; returns error.
 func (s *TaskService) DeleteTask(taskId int) (err error) {
 	var task *task_model.Task
 
-	task, err = s.repo.Task.GetTaskById(taskId)
+	task, err = s.repo.GetTaskById(taskId)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (s *TaskService) DeleteTask(taskId int) (err error) {
 		return errors.New("unable to delete task: processing is in progress")
 	}
 
-	if err = s.repo.Task.DeleteTask(taskId); err != nil {
+	if err = s.repo.DeleteTask(taskId); err != nil {
 		return err
 	}
 
@@ -115,19 +115,19 @@ func (s *TaskService) AddImageToTask(taskId int, fileData *task_model.FileData) 
 
 	// decode file to image type
 	var image image.Image
-	image, err = s.repo.Task.DecodeFile(fileData)
+	image, err = s.repo.DecodeFile(fileData)
 	if err != nil {
 		return err
 	}
 
 	// save image on disk
 	fileName := fileData.FileHeader.Filename
-	imageRow, err := s.repo.Task.SaveImageDisk(taskId, image, fileName)
+	imageRow, err := s.repo.SaveImageDisk(taskId, image, fileName)
 	if err != nil {
 		return err
 	}
 
-	return s.repo.Task.CreateImage(imageRow)
+	return s.repo.CreateImage(imageRow)
 }
 
 // validateImage validates the image and related task data; returns error.
@@ -150,7 +150,7 @@ func (s *TaskService) validateTaskImage(taskId int, fileData *task_model.FileDat
 
 // UpdateTaskStatus updates the task status to the specified value.
 func (s *TaskService) UpdateTaskStatus(taskId int, status string) (err error) {
-	return s.repo.Task.UpdateTaskStatus(taskId, status)
+	return s.repo.UpdateTaskStatus(taskId, status)
 }
 
 // ProcessTask processes tasks' images concurrently.
@@ -161,7 +161,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 	task, err = s.getFullTaskData(taskId)
 	if err != nil {
 		log.Println(err)
-		_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
+		_ = s.repo.UpdateTaskStatus(taskId, "error")
 		return
 	}
 	if task.Status == "completed" {
@@ -178,10 +178,10 @@ func (s *TaskService) ProcessTask(taskId int) {
 	if len(task.Images) > 0 {
 
 		// get token for external API authentication
-		token, err := s.repo.Task.GetFaceCloudToken()
+		token, err := s.repo.GetFaceCloudToken()
 		if err != nil {
 			log.Println(err)
-			_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
+			_ = s.repo.UpdateTaskStatus(taskId, "error")
 			return
 		}
 
@@ -195,7 +195,7 @@ func (s *TaskService) ProcessTask(taskId int) {
 			g.Go(func() error {
 
 				// send request to face cloud
-				imageData, err := s.repo.Task.GetFaceDetectionData(currImage, token)
+				imageData, err := s.repo.GetFaceDetectionData(currImage, token)
 				if err != nil {
 					log.Println(err)
 					return err
@@ -229,11 +229,11 @@ func (s *TaskService) ProcessTask(taskId int) {
 	err = g.Wait()
 
 	// save processed images to db
-	s.repo.Task.SaveProcessedData(facesToSave, imagesToSetDone)
+	s.repo.SaveProcessedData(facesToSave, imagesToSetDone)
 
 	if err != nil {
 		log.Println(err)
-		_ = s.repo.Task.UpdateTaskStatus(taskId, "error")
+		_ = s.repo.UpdateTaskStatus(taskId, "error")
 		return
 	}
 
@@ -256,6 +256,7 @@ func (s *TaskService) concludeTask(task *task_model.Task) {
 	for _, image := range task.Images {
 		for _, face := range image.Faces {
 			totalFaces++
+
 			if face.Gender == "male" {
 				maleFaces++
 				totalMaleAge += face.Age
@@ -282,9 +283,9 @@ func (s *TaskService) concludeTask(task *task_model.Task) {
 	task.AgeFemaleAvg = avgFemaleAge
 	task.Status = "completed"
 
-	err := s.repo.Task.UpdateTaskStatistics(task)
+	err := s.repo.UpdateTaskStatistics(task)
 	if err != nil {
-		_ = s.repo.Task.UpdateTaskStatus(task.Id, "error")
+		_ = s.repo.UpdateTaskStatus(task.Id, "error")
 		return
 	}
 }
