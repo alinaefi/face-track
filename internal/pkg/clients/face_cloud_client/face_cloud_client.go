@@ -1,3 +1,4 @@
+// Package face_cloud_client provides functionality to interact with the Face Cloud API.
 package face_cloud_client
 
 import (
