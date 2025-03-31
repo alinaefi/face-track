@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"face-track/internal/pkg/middleware"
 	"face-track/internal/pkg/model/task_model"
+	"face-track/tools"
 	"log"
 	"net/http"
 	"strconv"
@@ -33,15 +35,17 @@ func (h *Handler) getTask(c *gin.Context) {
 
 	taskId, err = strconv.Atoi(taskIdStr)
 	if err != nil {
-		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	task, err = h.service.GetTaskById(taskId)
 	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, tools.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
@@ -52,12 +56,11 @@ func (h *Handler) createTask(c *gin.Context) {
 
 	taskId, err := h.service.CreateTask()
 	if err != nil {
-		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": taskId})
+	c.JSON(http.StatusCreated, gin.H{"data": taskId})
 }
 
 func (h *Handler) deleteTask(c *gin.Context) {
@@ -69,15 +72,17 @@ func (h *Handler) deleteTask(c *gin.Context) {
 
 	taskId, err = strconv.Atoi(taskIdStr)
 	if err != nil {
-		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	err = h.service.DeleteTask(taskId)
 	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, tools.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
@@ -103,14 +108,12 @@ func (h *Handler) addImageToTask(c *gin.Context) {
 	defer fileData.File.Close()
 
 	if err != nil {
-		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to get uploaded image"})
 		return
 	}
 
 	err = h.service.AddImageToTask(taskId, fileData)
 	if err != nil {
-		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -12,7 +12,6 @@ import (
 	"face-track/tools"
 	"fmt"
 	"image"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -62,7 +61,7 @@ func (r *TaskRepo) GetTaskById(taskId int) (task *task_model.Task, err error) {
 			FROM task 
 			WHERE id=$1`
 
-	if err = r.db.QueryRow(query, taskId).Scan(
+	err = r.db.QueryRow(query, taskId).Scan(
 		&task.Id,
 		&task.Status,
 		&task.Statistics.FacesTotal,
@@ -70,7 +69,11 @@ func (r *TaskRepo) GetTaskById(taskId int) (task *task_model.Task, err error) {
 		&task.Statistics.FacesMale,
 		&task.Statistics.AgeFemaleAvg,
 		&task.Statistics.AgeMaleAvg,
-	); err != nil {
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, tools.ErrNotFound
+	}
+	if err != nil {
 		return nil, err
 	}
 
@@ -190,7 +193,7 @@ func (r *TaskRepo) DeleteTask(taskId int) (err error) {
 	}
 
 	if rowsDeleted == 0 {
-		return errors.New("operation unsuccessful: row not found")
+		return tools.ErrNotFound
 	}
 
 	return err
@@ -311,11 +314,11 @@ func (r *TaskRepo) UpdateTaskStatus(taskId int, status string) (err error) {
 
 	rowsAffected, err = result.RowsAffected()
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("operation unsuccessful: row not found")
+		return tools.ErrNotFound
 	}
 
 	return err
@@ -449,7 +452,7 @@ func (r *TaskRepo) UpdateTaskStatistics(task *task_model.Task) (err error) {
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("operation unsuccessful: row not found")
+		return tools.ErrNotFound
 	}
 
 	return err
