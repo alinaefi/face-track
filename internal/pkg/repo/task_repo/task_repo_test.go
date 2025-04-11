@@ -159,7 +159,7 @@ func Test_TaskRepo_GetTaskById(t *testing.T) {
 						FROM task 
 						WHERE id=$1`,
 					)).WithArgs(1).
-					WillReturnError(errors.New("sql error"))
+					WillReturnError(errors.New("db error"))
 			},
 			wantErr: true,
 		},
@@ -217,6 +217,89 @@ func Test_TaskRepo_GetTaskById(t *testing.T) {
 			// Check if the returned result matches the expected value
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("taskRepo.GetTaskById() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_TaskRepo_GetTaskImages(t *testing.T) {
+
+	// define arguments
+	type args struct {
+		taskId int
+	}
+
+	// define tests
+	tests := []struct {
+		name       string
+		args       args
+		beforeTest func(sqlmock.Sqlmock)
+		want       []*task_model.Image
+		wantErr    bool
+	}{
+		{ // fail retrieve images
+			name: "fail retrieve images",
+			args: args{taskId: 1},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.
+					ExpectQuery(regexp.QuoteMeta(
+						`SELECT 
+							id, 
+							task_id, 
+							image_name, 
+							done 
+						FROM task_image 
+						WHERE task_id=$1`,
+					)).WithArgs(1).
+					WillReturnError(errors.New("db error"))
+			},
+			wantErr: true,
+		},
+
+		{ // success retrieve images
+			name: "success retrieving task images",
+			args: args{taskId: 1},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.
+					ExpectQuery(regexp.QuoteMeta(
+						`SELECT 
+							id, 
+							task_id, 
+							image_name, 
+							done 
+						FROM task_image 
+						WHERE task_id=$1`,
+					)).WithArgs(1).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "task_id", "image_name", "done"}).AddRow(2, 1, "", false))
+			},
+			want:    []*task_model.Image{{Id: 2, TaskId: 1}},
+			wantErr: false,
+		},
+	}
+
+	// run tests
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDB, mockSQL, _ := sqlmock.New()
+			defer mockDB.Close()
+
+			db := sqlx.NewDb(mockDB, "sqlmock")
+
+			r := task_repo.New(db)
+
+			if tt.beforeTest != nil {
+				tt.beforeTest(mockSQL)
+			}
+
+			got, err := r.GetTaskImages(tt.args.taskId)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("taskRepo.GetTaskImages() error = %v, wantErr = %v", err, tt.wantErr)
+				return
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("taskRepo.GetTaskImages() = %v, want = %v", got, tt.want)
 			}
 		})
 	}
