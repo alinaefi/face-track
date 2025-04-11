@@ -117,7 +117,7 @@ func Test_TaskRepo_GetTaskById(t *testing.T) {
 		beforeTest    func(sqlmock.Sqlmock)
 		want          *task_model.Task
 		wantErr       bool
-		wantErrorType any
+		wantErrorType error
 	}{
 		{ // task with given id not found
 			name: "fail retrieve task: task not found",
@@ -210,7 +210,7 @@ func Test_TaskRepo_GetTaskById(t *testing.T) {
 			}
 
 			// Check if the error matches the expected error type
-			if tt.wantErrorType != nil && !errors.Is(err, tt.wantErrorType.(error)) {
+			if tt.wantErrorType != nil && !errors.Is(err, tt.wantErrorType) {
 				t.Errorf("expected error type %v, got %v", tt.wantErrorType, err)
 			}
 
