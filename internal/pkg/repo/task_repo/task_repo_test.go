@@ -1,8 +1,11 @@
 package task_repo_test
 
 import (
+	"database/sql"
 	"errors"
+	"face-track/internal/pkg/model/task_model"
 	"face-track/internal/pkg/repo/task_repo"
+	"face-track/tools"
 	"reflect"
 	"regexp"
 	"testing"
@@ -13,15 +16,17 @@ import (
 
 func Test_TaskRepo_CreateTask(t *testing.T) {
 
+	// Define table-driven tests
 	tests := []struct {
-		name       string
-		beforeTest func(sqlmock.Sqlmock)
-		want       int
-		wantErr    bool
+		name       string                // Name of the test case
+		beforeTest func(sqlmock.Sqlmock) // Setup mock expectations
+		want       int                   // Expected task ID
+		wantErr    bool                  // Whether we expect an error
 	}{
 		{
 			name: "fail create task",
 			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				// Simulate a DB error during INSERT
 				mockSQL.
 					ExpectQuery(regexp.QuoteMeta(`
 						INSERT INTO task 
@@ -36,13 +41,14 @@ func Test_TaskRepo_CreateTask(t *testing.T) {
 						VALUES ('new', 0, 0, 0, 0, 0) 
 						RETURNING id`,
 					)).WithoutArgs().
-					WillReturnError(errors.New("whoops, error"))
+					WillReturnError(errors.New("whoops, error")) // Mock DB failure
 			},
-			wantErr: true,
+			wantErr: true, // We expect an error here
 		},
 		{
 			name: "success create task",
 			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				// Simulate a successful DB insert that returns id = 1
 				mockSQL.
 					ExpectQuery(regexp.QuoteMeta(`
 						INSERT INTO task 
@@ -57,11 +63,132 @@ func Test_TaskRepo_CreateTask(t *testing.T) {
 						VALUES ('new', 0, 0, 0, 0, 0) 
 						RETURNING id`,
 					)).WithoutArgs().
-					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1)) // Simulate return row
 			},
-			want: 1,
+			want: 1, // We expect the returned task ID to be 1
 		},
 	}
+
+	// Run all test cases
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock DB and SQLMock
+			mockDB, mockSQL, _ := sqlmock.New()
+			defer mockDB.Close()
+
+			// Wrap sqlmock.DB with sqlx for our repository
+			db := sqlx.NewDb(mockDB, "sqlmock")
+
+			// Initialize the repo with the mocked DB
+			r := task_repo.New(db)
+
+			// Set up test-specific expectations
+			if tt.beforeTest != nil {
+				tt.beforeTest(mockSQL)
+			}
+
+			// Call the function under test
+			got, err := r.CreateTask()
+
+			// Check if the error matches expected outcome
+			if (err != nil) != tt.wantErr {
+				t.Errorf("taskRepo.CreateTask() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			// Check if the returned task ID matches expectation
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("taskRepo.CreateTask() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_TaskRepo_GetTaskById(t *testing.T) {
+
+	type args struct {
+		taskId int
+	}
+
+	// Define table-driven tests
+	tests := []struct {
+		name          string
+		args          args
+		beforeTest    func(sqlmock.Sqlmock)
+		want          *task_model.Task
+		wantErr       bool
+		wantErrorType any
+	}{
+		{ // task with given id not found
+			name: "fail retrieve task: task not found",
+			args: args{taskId: 1},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.
+					ExpectQuery(regexp.QuoteMeta(
+						`SELECT 
+							id, 
+							task_status, 
+							faces_total, 
+							faces_female, 
+							faces_male, 
+							age_female_avg, 
+							age_male_avg 
+						FROM task 
+						WHERE id=$1`,
+					)).WithArgs(1).
+					WillReturnError(sql.ErrNoRows)
+			},
+			wantErr:       true,
+			wantErrorType: tools.ErrNotFound,
+		},
+
+		{ // failed retrieve task
+			name: "fail retrieve task",
+			args: args{taskId: 1},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.
+					ExpectQuery(regexp.QuoteMeta(
+						`SELECT 
+							id, 
+							task_status, 
+							faces_total, 
+							faces_female, 
+							faces_male, 
+							age_female_avg, 
+							age_male_avg 
+						FROM task 
+						WHERE id=$1`,
+					)).WithArgs(1).
+					WillReturnError(errors.New("sql error"))
+			},
+			wantErr: true,
+		},
+
+		{ // successfully retrieved task
+			name: "success retrieve task",
+			args: args{taskId: 1},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.
+					ExpectQuery(regexp.QuoteMeta(
+						`SELECT 
+							id, 
+							task_status, 
+							faces_total, 
+							faces_female, 
+							faces_male, 
+							age_female_avg, 
+							age_male_avg 
+						FROM task 
+						WHERE id=$1`,
+					)).WithArgs(1).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "task_status", "faces_total", "faces_female", "faces_male", "age_female_avg", "age_male_avg"}).AddRow(1, "", 0, 0, 0, 0, 0))
+			},
+			want:    &task_model.Task{Id: 1},
+			wantErr: false,
+		},
+	}
+
+	// Run all test cases
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockDB, mockSQL, _ := sqlmock.New()
@@ -75,13 +202,21 @@ func Test_TaskRepo_CreateTask(t *testing.T) {
 				tt.beforeTest(mockSQL)
 			}
 
-			got, err := r.CreateTask()
+			got, err := r.GetTaskById(tt.args.taskId)
+
 			if (err != nil) != tt.wantErr {
-				t.Errorf("taskRepo.CreateTask() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("taskRepo.GetTaskById() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
+			// Check if the error matches the expected error type
+			if tt.wantErrorType != nil && !errors.Is(err, tt.wantErrorType.(error)) {
+				t.Errorf("expected error type %v, got %v", tt.wantErrorType, err)
+			}
+
+			// Check if the returned result matches the expected value
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("taskRepo.CreateTask() = %v, want %v", got, tt.want)
+				t.Errorf("taskRepo.GetTaskById() = %v, want %v", got, tt.want)
 			}
 		})
 	}
