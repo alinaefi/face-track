@@ -41,7 +41,7 @@ func Test_TaskRepo_CreateTask(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "success create user",
+			name: "success create task",
 			beforeTest: func(mockSQL sqlmock.Sqlmock) {
 				mockSQL.
 					ExpectQuery(regexp.QuoteMeta(`
