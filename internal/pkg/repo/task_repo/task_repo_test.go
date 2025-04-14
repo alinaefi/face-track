@@ -304,3 +304,113 @@ func Test_TaskRepo_GetTaskImages(t *testing.T) {
 		})
 	}
 }
+
+func Test_TaskRepo_GetFacesByImageIds(t *testing.T) {
+
+	type args struct {
+		imageIds []int
+	}
+
+	tests := []struct {
+		name       string
+		args       args
+		beforeTest func(sqlmock.Sqlmock)
+		want       map[int][]*task_model.Face
+		wantErr    bool
+	}{
+		{ // no image ids provided
+			name: "fail retrieve faces: no image ids provided",
+			args: args{imageIds: []int{}},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.ExpectQuery(regexp.QuoteMeta(
+					`SELECT 
+						id, 
+						image_id, 
+						gender, 
+						age, 
+						bbox_height, 
+						bbox_width, 
+						bbox_x, 
+						bbox_y 
+					FROM face 
+					WHERE image_id IN (?)`,
+				)).WithArgs([]int{}).
+					WillReturnError(errors.New("sql error"))
+			},
+			wantErr: true,
+		},
+		{ // success retrieving faces
+			name: "success retrieving faces",
+			args: args{imageIds: []int{3, 4, 5}},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.ExpectQuery(regexp.QuoteMeta(
+					`SELECT 
+						id, 
+						image_id, 
+						gender, 
+						age, 
+						bbox_height, 
+						bbox_width, 
+						bbox_x, 
+						bbox_y 
+					FROM face 
+					WHERE image_id IN (?, ?, ?)`,
+				)).WithArgs(3, 4, 5).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "image_id", "gender", "age", "bbox_height", "bbox_width", "bbox_x", "bbox_y"}).AddRow(2, 3, "male", 34, 700, 600, 1088, 904))
+			},
+			want:    map[int][]*task_model.Face{3: {&task_model.Face{Id: 2, ImageId: 3}}},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			mockDB, mockSQL, _ := sqlmock.New()
+
+			db := sqlx.NewDb(mockDB, "sqlmock")
+
+			r := task_repo.New(db)
+
+			if tt.beforeTest != nil {
+				tt.beforeTest(mockSQL)
+			}
+
+			// Act
+			got, err := r.GetFacesByImageIds(tt.args.imageIds)
+
+			// Assert
+			if (err != nil) != tt.wantErr {
+				t.Errorf("taskRepo.GetFacesByImageIds() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			// Local helper to compare only Id and ImageId fields
+			equalFacesByIdAndImageId := func(a, b map[int][]*task_model.Face) bool {
+				if len(a) != len(b) {
+					return false
+				}
+				for k, facesA := range a {
+					facesB, ok := b[k]
+					if !ok || len(facesA) != len(facesB) {
+						return false
+					}
+					for i := range facesA {
+						if facesA[i] == nil || facesB[i] == nil {
+							if facesA[i] != facesB[i] {
+								return false
+							}
+						} else if facesA[i].Id != facesB[i].Id || facesA[i].ImageId != facesB[i].ImageId {
+							return false
+						}
+					}
+				}
+				return true
+			}
+
+			if !equalFacesByIdAndImageId(got, tt.want) {
+				t.Errorf("taskRepo.GetFacesByImageIds() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
