@@ -212,6 +212,7 @@ func Test_TaskRepo_GetTaskById(t *testing.T) {
 			// Check if the error matches the expected error type
 			if tt.wantErrorType != nil && !errors.Is(err, tt.wantErrorType) {
 				t.Errorf("expected error type %v, got %v", tt.wantErrorType, err)
+				return
 			}
 
 			// Check if the returned result matches the expected value
@@ -412,5 +413,86 @@ func Test_TaskRepo_GetFacesByImageIds(t *testing.T) {
 				t.Errorf("taskRepo.GetFacesByImageIds() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_TaskRepo_DeleteTask(t *testing.T) {
+
+	type args struct {
+		taskId int
+	}
+
+	tests := []struct {
+		name          string
+		args          args
+		beforeTest    func(sqlmock.Sqlmock)
+		wantErr       bool
+		wantErrorType error
+	}{
+		{ // task with given id not found
+			name: "fail retrieve task: task not found",
+			args: args{taskId: 1},
+			beforeTest: func(sqlMock sqlmock.Sqlmock) {
+				sqlMock.ExpectExec(regexp.QuoteMeta(
+					`DELETE FROM task WHERE id=$1`,
+				)).WithArgs(1).
+					WillReturnResult(sqlmock.NewResult(0, 0))
+			},
+			wantErr:       true,
+			wantErrorType: tools.ErrNotFound,
+		},
+		{ // fail delete task
+			name: "fail delete task",
+			args: args{taskId: 1},
+			beforeTest: func(sqlMock sqlmock.Sqlmock) {
+				sqlMock.ExpectExec(regexp.QuoteMeta(
+					`DELETE FROM task WHERE id=$1`,
+				)).WithArgs(1).
+					WillReturnError(errors.New("db error"))
+			},
+			wantErr: true,
+		},
+		{ // success deleting task
+			name: "success deleting task",
+			args: args{taskId: 1},
+			beforeTest: func(sqlMock sqlmock.Sqlmock) {
+				sqlMock.ExpectExec(regexp.QuoteMeta(
+					`DELETE FROM task WHERE id=$1`,
+				)).WithArgs(1).
+					WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			// arrange
+			mockDB, mockSQL, _ := sqlmock.New()
+			defer mockDB.Close()
+
+			db := sqlx.NewDb(mockDB, "sqlmock")
+
+			r := task_repo.New(db)
+
+			if tt.beforeTest != nil {
+				tt.beforeTest(mockSQL)
+			}
+
+			// act
+			err := r.DeleteTask(tt.args.taskId)
+
+			// assert
+			if (err != nil) != tt.wantErr {
+				t.Errorf("taskRepo.DeleteTask() error = %v, want error %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErrorType != nil && !errors.Is(err, tt.wantErrorType) {
+				t.Errorf("taskRepo.DeleteTask() error type = %v, want err type %v", err, tt.wantErrorType)
+			}
+		})
+
 	}
 }
