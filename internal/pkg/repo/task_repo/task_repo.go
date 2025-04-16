@@ -180,7 +180,7 @@ func (r *TaskRepo) DeleteTask(taskId int) (err error) {
 	var result sql.Result
 	var rowsDeleted int64
 
-	query := `DELETE FROM task WHERE id=($1)`
+	query := `DELETE FROM task WHERE id=$1`
 
 	result, err = r.db.Exec(query, taskId)
 	if err != nil {
