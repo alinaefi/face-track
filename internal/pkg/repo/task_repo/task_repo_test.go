@@ -448,7 +448,7 @@ func Test_TaskRepo_DeleteTask(t *testing.T) {
 				sqlMock.ExpectExec(regexp.QuoteMeta(
 					`DELETE FROM task WHERE id=$1`,
 				)).WithArgs(1).
-					WillReturnError(errors.New("db error"))
+					WillReturnResult(sqlmock.NewResult(0, 0))
 			},
 			wantErr: true,
 		},
@@ -494,5 +494,88 @@ func Test_TaskRepo_DeleteTask(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func Test_TaskRepo_CreateImage(t *testing.T) {
+
+	type args struct {
+		image *task_model.Image
+	}
+
+	tests := []struct {
+		name          string
+		args          args
+		beforeTest    func(sqlmock.Sqlmock)
+		wantErr       bool
+		wantErrorType error
+	}{
+		{ // error creating image
+			name: "fail create image row",
+			args: args{&task_model.Image{
+				Id:        1,
+				TaskId:    2,
+				ImageName: "Sample Image Name",
+				DoneFlag:  false,
+			}},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.ExpectExec(regexp.QuoteMeta(
+					`INSERT INTO task_image 
+						(
+						task_id, 
+						image_name
+						) 
+					VALUES ($1, $2)`,
+				)).WithArgs(2, "Sample Image Name").
+					WillReturnResult(sqlmock.NewResult(0, 0))
+			},
+			wantErr: true,
+		},
+		{ // success creating image
+			name: "success create image row",
+			args: args{&task_model.Image{
+				Id:        1,
+				TaskId:    2,
+				ImageName: "Sample Image Name",
+				DoneFlag:  false,
+			}},
+			beforeTest: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.ExpectExec(regexp.QuoteMeta(
+					`INSERT INTO task_image 
+						(
+						task_id, 
+						image_name
+						) 
+					VALUES ($1, $2)`,
+				)).WithArgs(2, "Sample Image Name").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+			},
+			wantErr: false,
+		},
+	}
+
+	// run all tests
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// arrange
+			mockDB, mockSQL, _ := sqlmock.New()
+			defer mockDB.Close()
+
+			db := sqlx.NewDb(mockDB, "sqlmock")
+
+			r := task_repo.New(db)
+
+			if tt.beforeTest != nil {
+				tt.beforeTest(mockSQL)
+			}
+
+			// act
+			gotErr := r.CreateImage(tt.args.image)
+
+			// assert
+			if (gotErr != nil) != tt.wantErr {
+				t.Errorf("taskRepo.CreateImage() error = %v, wantErr %v", gotErr, tt.wantErr)
+			}
+		})
 	}
 }
